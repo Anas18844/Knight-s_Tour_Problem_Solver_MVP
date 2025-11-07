@@ -1,0 +1,52 @@
+Helwan University | the Faculty of Computing & Artificial Intelligence | the Computer Science Department 
+the Mainstream Programme, the Software Engineering Programme, and the Medical Informatics Programme 
+Module: AI310 & CS361 Artificial Intelligence – Fall “Semester 1” 2025-2026 
+ 
+Page 7 of 30
+3) Knight's Tour Problem Solver (for different sizes – n should be selected by the user) 
+using the Backtracking Search Algorithm, AND the Cultural Algorithm. 
+The Knight’s Tour is a captivating chess problem where the challenge is to find a sequence of moves for a knight
+to visit every square on the chessboard exactly once. This project, "Knight’s Tour Problem Solver," aims to
+develop a software solution that efficiently solves the intriguing Knight’s Tour problem using two distinct
+approaches: the Backtracking Search Algorithm and a Cultural Algorithm.
+Problem Overview:  In the Knight’s Tour, the knight, a chess piece capable of unique L-shaped moves, must
+traverse the chessboard, covering each square precisely once. The problem is both combinatorial and
+algorithmic, requiring strategic exploration to determine a viable sequence of knight moves. 
+Approaches: 
+(a) Backtracking Search Algorithm: Backtracking involves systematically exploring potential moves while
+intelligently abandoning paths that lead to dead ends. This algorithm efficiently navigates the knight
+through the chessboard.  The Backtracking Search Algorithm is a systematic and resource-efficient
+method for solving the Knight’s Tour. It optimises exploration by discarding unfruitful paths, ensuring a
+feasible solution. 
+(b) Cultural Algorithm: The Cultural Algorithm (CA) is an evolutionary computation technique (similar to
+the Genetic Algorithm) that mimics the dual inheritance found in human societies, where both genetic
+(population-level) evolution and cultural (knowledge-based) evolution occur in tandem. In CA, two
+primary spaces are maintained: 
+- Population Space: This is similar to conventional evolutionary algorithms, where a set of
+candidate solutions (individuals) evolves using operators like selection, crossover, and mutation.
+- Belief Space: This space stores accumulated knowledge (or “culture”) from previous
+generations. It guides the search process by influencing how new candidates are generated. 
+The algorithm adapts over successive generations to find an optimal knight’s tour. Cultural Algorithms
+adopt a stochastic, adaptive approach to solving the Knight’s Tour. By exploring diverse move sequences
+and evolving over generations, the algorithm aims to discover effective paths.
+Requirements: 
+User-Selected Board Size: An additional feature of this project is user customisation. Users can select
+the size of the chessboard (n), allowing them to explore the Knight’s Tour for different board dimensions.
+This flexibility enhances the project’s applicability and provides users with a tailored experience. 
+Interactive Interface: Develop a user-friendly interface that allows users to enter the chessboard size (n)
+and visualise the knight’s tour solutions.
+Backtracking Implementation: Implement the Backtracking Search Algorithm to systematically explore
+and find a solution to the Knight’s Tour for the user-defined board size.
+30504242401754
+Helwan University | the Faculty of Computing & Artificial Intelligence | the Computer Science Department 
+the Mainstream Programme, the Software Engineering Programme, and the Medical Informatics Programme 
+Module: AI310 & CS361 Artificial Intelligence – Fall “Semester 1” 2025-2026 
+ 
+Page 8 of 30
+Cultural Algorithm Implementation: Design and integrate a Cultural Algorithm to provide an alternative
+solution strategy that fosters diversity and adaptability.
+Visualisation: Include a graphical representation of the knight’s movements on the chessboard, aiding
+users in understanding and appreciating the solutions generated.
+Optimisation: Strive for optimised algorithms to handle larger chessboard sizes efficiently.
+This project aims not only to solve the Knight’s Tour problem but also to offer users an engaging, interactive
+experience, allowing them to explore the fascinating world of chessboard traversal using advanced algorithms.
