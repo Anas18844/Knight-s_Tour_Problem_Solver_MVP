@@ -19,7 +19,7 @@ class BacktrackingSolver:
     ]
 
     def __init__(self, board_size: int, start_pos: Tuple[int, int] = (0, 0),
-                 timeout: float = 60.0, progress_callback: Optional[Callable] = None):
+                timeout: float = 60.0, progress_callback: Optional[Callable] = None):
         """
         Initialize the backtracking solver.
 
@@ -112,8 +112,8 @@ class BacktrackingSolver:
         Returns:
             True if solution found, False otherwise
         """
-        # Check timeout
-        if time.time() - self.start_time > self.timeout:
+        # Check timeout (ensure start_time is initialized before subtracting)
+        if self.start_time is not None and (time.time() - self.start_time) > self.timeout:
             self.timed_out = True
             return False
 

@@ -1,0 +1,4 @@
+1. add a new hourse on the board
+2. Analysis dashboard
+3. Algorithm analysis details 
+4. 

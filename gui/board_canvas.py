@@ -4,6 +4,8 @@ import tkinter as tk
 from tkinter import Canvas
 from typing import List, Tuple, Optional
 import math
+import os
+from PIL import Image, ImageTk
 
 
 class BoardCanvas(Canvas):
@@ -39,29 +41,52 @@ class BoardCanvas(Canvas):
         self.current_path = []
         self.animation_index = 0
         self.is_animating = False
+        self.is_partial_solution = False  # Track if current solution is partial
         self.animation_speed = 200  # milliseconds per step
         self.animation_job = None
         self.selected_start = None
         self.click_callback = None
 
         # Visual elements
-        self.knight_image = None
+        self.knight_photo = None  # PhotoImage object for knight
+        self.knight_pil_image = None  # PIL Image object
         self.path_lines = []
         self.move_numbers = []
 
+        # Load knight image
+        self._load_knight_image()
+
         # Colors
         self.COLOR_LIGHT = '#F0D9B5'
-        self.COLOR_DARK = '#B58863'
+        self.COLOR_DARK = "#A07451"
         self.COLOR_START = '#90EE90'
         self.COLOR_END = '#FFB6C6'
         self.COLOR_PATH = '#4169E1'
         self.COLOR_KNIGHT = '#FF4500'
-
+        self.COLOR_UNVISITED = "#DD6F6F"  # Light red for unvisited cells in partial solutions
         # Draw initial board
         self.draw_board()
 
         # Bind click event
         self.bind('<Button-1>', self._on_click)
+
+    def _load_knight_image(self):
+        """Load and prepare knight image for display."""
+        try:
+            # Get the path to the knight image (in the project root)
+            base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            knight_image_path = os.path.join(base_path, 'KNIGHT_BLACK.png')
+
+            if os.path.exists(knight_image_path):
+                # Load the image using PIL
+                self.knight_pil_image = Image.open(knight_image_path)
+                # We'll resize it when drawing based on cell size
+            else:
+                print(f"Warning: Knight image not found at {knight_image_path}")
+                self.knight_pil_image = None
+        except Exception as e:
+            print(f"Error loading knight image: {e}")
+            self.knight_pil_image = None
 
     def draw_board(self):
         """Draw the chessboard pattern."""
@@ -148,7 +173,7 @@ class BoardCanvas(Canvas):
 
     def draw_knight(self, x: int, y: int):
         """
-        Draw knight at specified position.
+        Draw knight at specified position using the knight image.
 
         Args:
             x: Column index
@@ -158,9 +183,44 @@ class BoardCanvas(Canvas):
         self.delete('knight')
 
         center_x, center_y = self.get_cell_center(x, y)
+
+        # Use image if available, otherwise fall back to Unicode symbol
+        if self.knight_pil_image is not None:
+            try:
+                # Calculate size for the knight (80% of cell size for good fit)
+                knight_size = int(self.cell_size * 0.8)
+
+                # Resize the knight image
+                resized_image = self.knight_pil_image.resize(
+                    (knight_size, knight_size),
+                    Image.Resampling.LANCZOS
+                )
+
+                # Convert to PhotoImage
+                self.knight_photo = ImageTk.PhotoImage(resized_image)
+
+                # Draw the image centered on the cell
+                self.create_image(center_x, center_y, image=self.knight_photo,
+                                tags='knight')
+            except Exception as e:
+                print(f"Error drawing knight image: {e}")
+                # Fall back to Unicode symbol
+                self._draw_knight_fallback(center_x, center_y)
+        else:
+            # Fall back to Unicode symbol
+            self._draw_knight_fallback(center_x, center_y)
+
+    def _draw_knight_fallback(self, center_x: int, center_y: int):
+        """
+        Draw knight using Unicode symbol (fallback method).
+
+        Args:
+            center_x: X coordinate of center
+            center_y: Y coordinate of center
+        """
         radius = self.cell_size // 3
 
-        # Draw knight as a circle with "K"
+        # Draw knight as a circle with Unicode knight symbol
         self.create_oval(center_x - radius, center_y - radius,
                         center_x + radius, center_y + radius,
                         fill=self.COLOR_KNIGHT, outline='black', width=2,
@@ -213,8 +273,24 @@ class BoardCanvas(Canvas):
         self.create_rectangle(x1, y1, x2, y2, fill=color, outline='black',
                             tags='highlight')
 
+    def highlight_unvisited_cells(self, path: List[Tuple[int, int]]):
+        """
+        Highlight all unvisited cells (for showing partial solutions).
+
+        Args:
+            path: List of visited positions
+        """
+        # Create set of visited positions for fast lookup
+        visited = set(path)
+
+        # Highlight all unvisited cells
+        for row in range(self.board_size):
+            for col in range(self.board_size):
+                if (row, col) not in visited:
+                    self.highlight_position(row, col, self.COLOR_UNVISITED)
+
     def start_animation(self, path: List[Tuple[int, int]], speed: int = 200,
-                       show_full_path: bool = False):
+                       show_full_path: bool = False, is_partial: bool = False):
         """
         Start animating knight's tour.
 
@@ -222,6 +298,7 @@ class BoardCanvas(Canvas):
             path: List of (x, y) coordinates
             speed: Animation speed in milliseconds per step
             show_full_path: If True, show complete path; if False, show progressively
+            is_partial: If True, this is a partial solution (highlight unvisited cells)
         """
         self.stop_animation()
         self.clear_animation()
@@ -230,12 +307,17 @@ class BoardCanvas(Canvas):
         self.animation_speed = speed
         self.animation_index = 0
         self.is_animating = True
+        self.is_partial_solution = is_partial  # Store for use after animation
 
         if not path:
             return
 
         # Redraw board
         self.draw_board()
+
+        # If partial solution, highlight unvisited cells first (before animation)
+        if is_partial:
+            self.highlight_unvisited_cells(path)
 
         # Highlight start and end positions
         start_x, start_y = path[0]

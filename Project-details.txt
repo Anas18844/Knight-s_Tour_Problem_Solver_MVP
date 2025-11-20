@@ -1,3 +1,52 @@
+
+A I 3 1 0 / C S 3 6 1   A R T I F I C I A L   I N T E L L I G E N C E   F A L L   2 0 2 5  
+C O U R S E   P R O J E C T   I N S T R U C T I O N S  
+Instructions to Students: 
+o  This is a group work project. Each group consists of six students (“Mainstream Programme”) 
+or four to six (“both Software Engineering & Medical Informatics Programmes”). The Teaching 
+Assistant must approve group members through registration. Each group must develop  the 
+assigned idea using Python. 
+ 
+o  Project Objectives: The objectives of this project can be summarised as applying the 
+main  ideas,  fundamental  concepts,  and  basic  algorithms  in  the  fields  of  artificial 
+intelligence and machine learning. 
+ 
+o  Submission:  Submission is done according to the following schedule: 
+o  Week  12/13:  Submission  and  Discussion  of  the  (1)  Project  and  (2) 
+Documentation. The report should include the following: (1) Project idea in detail, (2) 
+Main functionalities, (3) Similar applications in the market, (4) A literature review of 
+Academic publications (papers) relevant to the idea (at least 4 to 6 papers, as per the 
+number of team members), (5) the Dataset employed (preferably a publicly available 
+dataset),  (6)  Details  of  the  algorithm(s)/approach(es)  used  and  the  results  of  the 
+experiments, and (7) Development platform. 
+ 
+o  Assessment: Assessment will be on the reports, code submitted, and discussions with  team 
+members. All team members must contribute across all phases, and each member's role must be 
+clearly stated in each report. 
+o  The Project will be assessed based on the following criteria: 
+▪  The complexity of the problem, & the correctness of the algorithms employed. 
+▪  The quality/comprehensiveness of your experiments & documentation. 
+▪  The correctness of your analysis and design diagrams. 
+▪  Implementation correctness. 
+ 
+o  Feedback: If requested, further details and feedback could be provided for each group through 
+discussions with the teaching assistant(s) during the weekly-labs/office-hours. 
+ 
+o  You  can  only  submit  your work. Any  student  suspected  of  plagiarism will  be  subject  to  the 
+procedures set out by the Faculty/University (including failing the course entirely). 
+o  Academic Integrity: The University’s policies on academic integrity will be enforced
+against students who violate the University's standards of academic integrity. Examples 
+of behaviour that are not allowed are: 
+▪  Copying all or part of someone else's work and submitting it as your own; 
+▪  Giving another student in the class a copy of your work and 
+▪  Copying parts from the internet, textbooks, etc. 
+▪  If you have any questions concerning what is allowed, please don’t hesitate to
+discuss them with me. 
+o  We understand that you might positively refer to AI tools to support your 
+research. Please note that, in case there are any concerns about AI-generated 
+submission  content,  you  will  be  invited  for  an  opportunity  to  verify  and 
+defend your work. 
+
 Helwan University | the Faculty of Computing & Artificial Intelligence | the Computer Science Department 
 the Mainstream Programme, the Software Engineering Programme, and the Medical Informatics Programme 
 Module: AI310 & CS361 Artificial Intelligence – Fall “Semester 1” 2025-2026 
