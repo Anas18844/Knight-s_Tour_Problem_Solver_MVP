@@ -1,48 +1,16 @@
-"""
-Level 0 - Random Knight Walk
-
-This is a simple baseline algorithm that demonstrates random human-like
-movement of a knight until it gets stuck. This is NOT backtracking,
-NOT brute force, and NOT heuristic-based.
-
-Purpose: Provides a baseline for comparison with intelligent algorithms.
-Expected: Will rarely (if ever) complete a full tour, especially on larger boards.
-"""
-
 import random
 from typing import List, Tuple, Optional
 
-
 class RandomKnightWalk:
-    """
-    Simple random walk algorithm for Knight's Tour.
 
-    This algorithm moves the knight randomly to valid unvisited squares
-    until no more moves are available (dead-end) or all squares are visited.
-    """
-
-    # Knight's 8 possible moves as (dx, dy) coordinate deltas
-    KNIGHT_MOVES = [
-        (-2, -1), (-2, 1),  # Up-left, Up-right
-        (-1, -2), (-1, 2),  # Left-up, Left-down
-        (1, -2), (1, 2),    # Right-up, Right-down
-        (2, -1), (2, 1)     # Down-left, Down-right
-    ]
-
+# كل حصان له 8 حركات valid عشان اعرفهم بجمع عليهم الارقام ده و اشوف هل الحصان هيفضل داخل البورد و الا لا 
+    KNIGHT_MOVES = [(-2, -1),(-2, 1),(-1, -2),(-1, 2),(1, -2),(1, 2),(2, -1),(2, 1)]
+# ده عباره ال construct الخاص بال class 
+# بيهيء ال board و بياخد المتغيرات 
     def __init__(self, n: int, level: int = 0, timeout: float = 60.0):
-        """
-        Initialize the Random Knight Walk solver.
-
-        Args:
-            n: Board size (n x n)
-            level: Algorithm level (always 0 for this implementation)
-            timeout: Not used in this simple algorithm
-        """
         self.n = n
         self.level = level
         self.timeout = timeout
-
-        # Board state: -1 = unvisited, 0+ = move number
         self.board: List[List[int]] = [[-1 for _ in range(n)] for _ in range(n)]
 
         # Solution path tracking
@@ -53,42 +21,12 @@ class RandomKnightWalk:
         self.dead_ends_hit = 0
 
     def is_valid_position(self, x: int, y: int) -> bool:
-        """
-        Check if a position is within board bounds.
-
-        Args:
-            x: Row coordinate
-            y: Column coordinate
-
-        Returns:
-            True if position is valid, False otherwise
-        """
         return 0 <= x < self.n and 0 <= y < self.n
 
     def is_unvisited(self, x: int, y: int) -> bool:
-        """
-        Check if a square has not been visited yet.
-
-        Args:
-            x: Row coordinate
-            y: Column coordinate
-
-        Returns:
-            True if square is unvisited, False otherwise
-        """
         return self.board[x][y] == -1
 
     def get_valid_moves(self, x: int, y: int) -> List[Tuple[int, int]]:
-        """
-        Get all valid unvisited moves from current position.
-
-        Args:
-            x: Current row position
-            y: Current column position
-
-        Returns:
-            List of valid (next_x, next_y) positions
-        """
         valid_moves = []
 
         # Try all 8 possible knight moves
@@ -103,39 +41,11 @@ class RandomKnightWalk:
         return valid_moves
 
     def select_move(self, valid_moves: List[Tuple[int, int]]) -> Tuple[int, int]:
-        """
-        Select next move from list of valid moves.
-        This method is meant to be overridden by subclasses.
-
-        Args:
-            valid_moves: List of valid (x, y) positions
-
-        Returns:
-            Selected (x, y) position
-        """
         # Level 0: Random selection
         random.shuffle(valid_moves)
         return valid_moves[0]
 
     def random_walk(self, start_x: int, start_y: int) -> bool:
-        """
-        Perform random walk starting from given position.
-
-        Algorithm:
-        1. Mark starting position as visited
-        2. Get all valid unvisited moves from current position
-        3. If no valid moves → stop (dead-end reached)
-        4. Select next move using select_move() method
-        5. Move knight to that position
-        6. Repeat from step 2
-
-        Args:
-            start_x: Starting row position
-            start_y: Starting column position
-
-        Returns:
-            True if complete tour found (all squares visited), False otherwise
-        """
         # Start at initial position
         current_x = start_x
         current_y = start_y
@@ -176,16 +86,6 @@ class RandomKnightWalk:
         return True
 
     def solve(self, start_x: int, start_y: int) -> Tuple[bool, List[Tuple[int, int]]]:
-        """
-        Main solve method - attempts random walk from starting position.
-
-        Args:
-            start_x: Starting row position
-            start_y: Starting column position
-
-        Returns:
-            Tuple of (success: bool, path: List of (x,y) coordinates)
-        """
         # Reset board and path
         self.board = [[-1 for _ in range(self.n)] for _ in range(self.n)]
         self.path = []
@@ -211,12 +111,6 @@ class RandomKnightWalk:
         return success, self.path.copy()
 
     def get_stats(self) -> dict:
-        """
-        Get statistics about the random walk.
-
-        Returns:
-            Dictionary with statistics
-        """
         return {
             'total_moves': self.total_moves,
             'dead_ends_hit': self.dead_ends_hit,
