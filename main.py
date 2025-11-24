@@ -1,28 +1,8 @@
-"""
-Knight's Tour Problem Solver - Main Entry Point
-
-University Project MVP
-Author: AI Project Team
-Date: 2025
-
-This application solves the Knight's Tour problem using two algorithms:
-1. Backtracking with Warnsdorff's Heuristic
-2. Cultural Algorithm
-
-Features:
-- Interactive GUI with chessboard visualization
-- Step-by-step animation of solutions
-- Performance comparison and reporting
-- SQLite database for run history
-- Semi-magic square analysis
-"""
-
 import tkinter as tk
 from tkinter import messagebox
 import sys
 import os
 
-# Add current directory to Python path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 try:
@@ -35,25 +15,15 @@ except ImportError as e:
 
 
 def main():
-    """Main entry point for the application."""
-    # Create root window
     root = tk.Tk()
-
-    # Set window icon (if available)
-    try:
-        # You can add a .ico file for Windows
-        # root.iconbitmap('icon.ico')
-        pass
-    except:
-        pass
-
-    # Create and run GUI
+    # Create GUI
     try:
         app = KnightTourGUI(root)
+        # run GUI
         app.run()
+    # Exception if run failer 
     except Exception as e:
-        messagebox.showerror("Application Error",
-                           f"An error occurred while running the application:\n\n{str(e)}")
+        messagebox.showerror("Application Error")
         print(f"Error: {e}")
         import traceback
         traceback.print_exc()

@@ -924,7 +924,7 @@ END OF ANALYSIS
 
         content = f"""
 ╔══════════════════════════════════════════════════════════════════════════════╗
-║                CULTURAL ALGORITHM ANALYSIS                                    ║
+║                CULTURAL ALGORITHM ANALYSIS                                   ║
 ╚══════════════════════════════════════════════════════════════════════════════╝
 
 Evolution Metrics:

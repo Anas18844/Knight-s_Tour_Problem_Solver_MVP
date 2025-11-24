@@ -1,21 +1,8 @@
-"""
-SolverManager - Unified interface for all Knight's Tour solvers.
-
-This module provides a clean, modular way to manage and run different
-algorithm implementations at various levels.
-"""
-
 import time
 from typing import Dict, Tuple, Optional, Any
 
 
 class SolverManager:
-    """
-    Manages all Knight's Tour solver algorithms and levels.
-
-    Stores solvers in a dictionary: solvers[(algorithm_name, level)] = SolverInstance
-    Provides unified interface for running and comparing solvers.
-    """
 
     def __init__(self):
         """Initialize the solver manager with empty solver registry."""
@@ -23,8 +10,6 @@ class SolverManager:
         self._register_default_solvers()
 
     def _register_default_solvers(self):
-        """Register all available solver implementations."""
-        # Import solvers here to avoid circular imports
         from algorithms.backtracking import BacktrackingSolver
         from algorithms.cultural import CulturalAlgorithmSolver
         from algorithms.level0_random import RandomKnightWalk
@@ -45,47 +30,10 @@ class SolverManager:
         self.solvers[("Cultural Algorithm", 1)] = CulturalAlgorithmSolver
 
     def register_solver(self, algorithm_name: str, level: int, solver_class):
-        """
-        Register a new solver implementation.
-
-        Args:
-            algorithm_name: Name of the algorithm (e.g., "Backtracking")
-            level: Level number (0, 1, 2, 3, etc.)
-            solver_class: The solver class to instantiate
-        """
         self.solvers[(algorithm_name, level)] = solver_class
 
     def solve(self, algorithm_name: str, level: int, N: int, start_pos: Tuple[int, int],
               timeout: float = 60.0) -> Dict[str, Any]:
-        """
-        Main solving method - runs specified algorithm at given level.
-
-        Args:
-            algorithm_name: Name of algorithm ("Backtracking", "Cultural Algorithm", etc.)
-            level: Algorithm level (0, 1, 2, 3)
-            N: Board size (NxN)
-            start_pos: Starting position as (x, y) tuple
-            timeout: Maximum solving time in seconds
-
-        Returns:
-            Dictionary with unified result format:
-            {
-                'success': bool,
-                'path': List[Tuple[int, int]],
-                'execution_time': float,
-                'algorithm': str,
-                'level': int,
-                'board_size': int,
-                'start_position': Tuple[int, int],
-                'solution_length': int,
-                'stats': {
-                    'recursive_calls': int,
-                    'backtrack_count': int,
-                    'nodes_explored': int,
-                    # ... other algorithm-specific stats
-                }
-            }
-        """
         # Get solver class
         solver_key = (algorithm_name, level)
         if solver_key not in self.solvers:
@@ -110,11 +58,6 @@ class SolverManager:
         start_time = time.time()
 
         try:
-            # Different solvers have different initialization patterns
-            # Random Walk (Level 0): __init__(n, level=0, timeout=60.0)
-            # Ordered Walk (Level 1): __init__(n, level=1, timeout=60.0)
-            # Backtracking (Level 4): __init__(board_size, start_pos, timeout=60.0)
-            # Cultural: __init__(board_size, start_pos, timeout=60.0)
 
             if "Random Walk" in algorithm_name or "Ordered Walk" in algorithm_name:
                 solver = solver_class(n=N, level=level, timeout=timeout)
@@ -189,17 +132,6 @@ class SolverManager:
 
     def run_all_backtracking_levels(self, N: int, start_pos: Tuple[int, int],
                                    timeout: float = 60.0) -> Dict[int, Dict[str, Any]]:
-        """
-        Run all available Backtracking levels and return results.
-
-        Args:
-            N: Board size
-            start_pos: Starting position
-            timeout: Timeout for each level
-
-        Returns:
-            Dictionary mapping level -> result dict
-        """
         results = {}
 
         # Find all registered backtracking levels
@@ -215,17 +147,6 @@ class SolverManager:
 
     def run_all_ca_levels(self, N: int, start_pos: Tuple[int, int],
                          timeout: float = 60.0) -> Dict[int, Dict[str, Any]]:
-        """
-        Run all available Cultural Algorithm levels and return results.
-
-        Args:
-            N: Board size
-            start_pos: Starting position
-            timeout: Timeout for each level
-
-        Returns:
-            Dictionary mapping level -> result dict
-        """
         results = {}
 
         # Find all registered cultural algorithm levels
@@ -241,23 +162,6 @@ class SolverManager:
 
     def compare_best_levels(self, N: int, start_pos: Tuple[int, int],
                            timeout: float = 60.0) -> Dict[str, Dict[str, Any]]:
-        """
-        Run the best level of each algorithm and compare results.
-
-        Args:
-            N: Board size
-            start_pos: Starting position
-            timeout: Timeout for each solver
-
-        Returns:
-            Dictionary with comparison results:
-            {
-                'Backtracking': result_dict,
-                'Cultural Algorithm': result_dict,
-                'fastest': algorithm_name,
-                'most_efficient': algorithm_name
-            }
-        """
         comparison = {}
 
         # Run best Backtracking level (Level 1 for now)
@@ -303,22 +207,6 @@ class SolverManager:
 
     def run_optimal(self, N: int, start_pos: Tuple[int, int],
                    timeout: float = 60.0) -> Dict[str, Any]:
-        """
-        Automatically select and run the optimal solver for given board size.
-
-        Strategy:
-        - Small boards (5-8): Use Backtracking Level 1 (fastest)
-        - Medium boards (9-10): Use Backtracking Level 1
-        - Large boards (11+): Try Cultural Algorithm if Backtracking times out
-
-        Args:
-            N: Board size
-            start_pos: Starting position
-            timeout: Maximum time allowed
-
-        Returns:
-            Result dictionary from optimal solver
-        """
         print(f"Selecting optimal solver for {N}x{N} board...")
 
         # For most cases, Backtracking Level 1 with Warnsdorff is optimal
@@ -332,12 +220,6 @@ class SolverManager:
         return result
 
     def get_available_solvers(self) -> Dict[str, list]:
-        """
-        Get list of all available solvers organized by algorithm.
-
-        Returns:
-            Dictionary mapping algorithm name -> list of available levels
-        """
         algorithms = {}
 
         for (algo_name, level) in self.solvers.keys():

@@ -1,5 +1,3 @@
-"""Database manager for Knight's Tour solver using SQLite."""
-
 import sqlite3
 import json
 import os
@@ -46,21 +44,6 @@ class DatabaseManager:
     def insert_run(self, algorithm: str, board_size: int, execution_time: float,
                    steps: int, result: str, solution_path: List[Tuple[int, int]],
                    start_position: Tuple[int, int]) -> int:
-        """
-        Insert a new algorithm run record.
-
-        Args:
-            algorithm: Algorithm name ('Backtracking' or 'Cultural')
-            board_size: Size of the board (n x n)
-            execution_time: Time taken in seconds
-            steps: Number of steps in solution
-            result: 'SUCCESS' or 'FAILURE'
-            solution_path: List of (x, y) coordinates
-            start_position: Starting position (x, y)
-
-        Returns:
-            ID of inserted run record
-        """
         try:
             cursor = self.connection.cursor()
             cursor.execute("""
@@ -85,18 +68,6 @@ class DatabaseManager:
 
     def insert_report(self, run_id: int, details: str,
                      performance_graph: str, csv_report: str) -> int:
-        """
-        Insert a report record for a run.
-
-        Args:
-            run_id: ID of the associated run
-            details: Text summary of the run
-            performance_graph: File path to saved graph
-            csv_report: File path to saved CSV
-
-        Returns:
-            ID of inserted report record
-        """
         try:
             cursor = self.connection.cursor()
             cursor.execute("""
@@ -111,15 +82,6 @@ class DatabaseManager:
             raise
 
     def get_run_by_id(self, run_id: int) -> Optional[Dict]:
-        """
-        Retrieve a run record by ID.
-
-        Args:
-            run_id: ID of the run
-
-        Returns:
-            Dictionary with run data or None if not found
-        """
         try:
             cursor = self.connection.cursor()
             cursor.execute("SELECT * FROM runs WHERE id = ?", (run_id,))
@@ -135,16 +97,6 @@ class DatabaseManager:
 
     def get_all_runs(self, algorithm: Optional[str] = None,
                      board_size: Optional[int] = None) -> List[Dict]:
-        """
-        Retrieve all runs, optionally filtered by algorithm and/or board size.
-
-        Args:
-            algorithm: Filter by algorithm name (optional)
-            board_size: Filter by board size (optional)
-
-        Returns:
-            List of run records as dictionaries
-        """
         try:
             cursor = self.connection.cursor()
             query = "SELECT * FROM runs WHERE 1=1"
@@ -170,15 +122,6 @@ class DatabaseManager:
             return []
 
     def get_report_by_run_id(self, run_id: int) -> Optional[Dict]:
-        """
-        Retrieve report for a specific run.
-
-        Args:
-            run_id: ID of the run
-
-        Returns:
-            Dictionary with report data or None if not found
-        """
         try:
             cursor = self.connection.cursor()
             cursor.execute("SELECT * FROM reports WHERE run_id = ?", (run_id,))
@@ -193,12 +136,6 @@ class DatabaseManager:
             return None
 
     def get_statistics(self) -> Dict:
-        """
-        Get overall statistics from all runs.
-
-        Returns:
-            Dictionary with statistics
-        """
         try:
             cursor = self.connection.cursor()
 
@@ -248,15 +185,6 @@ class DatabaseManager:
             return {}
 
     def delete_run(self, run_id: int) -> bool:
-        """
-        Delete a run and its associated report.
-
-        Args:
-            run_id: ID of the run to delete
-
-        Returns:
-            True if successful, False otherwise
-        """
         try:
             cursor = self.connection.cursor()
             cursor.execute("DELETE FROM runs WHERE id = ?", (run_id,))
