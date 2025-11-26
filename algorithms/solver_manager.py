@@ -11,7 +11,7 @@ class SolverManager:
 
     def _register_default_solvers(self):
         from algorithms.backtracking import RandomKnightWalk as BTRandomWalk, OrderedKnightWalk, PureBacktracking, EnhancedBacktracking, BacktrackingSolver
-        from algorithms.cultural import RandomKnightWalk as CARandomWalk, SimpleGASolver, EnhancedGASolver, CulturalAlgorithmSolver
+        from algorithms.cultural import RandomKnightWalk as CARandomWalk, SimpleGASolver, EnhancedGASolver, CulturalGASolver, CulturalAlgorithmSolver
         from algorithms.level0_random import RandomKnightWalk
 
         self.solvers[("Random Walk", 0)] = RandomKnightWalk
@@ -28,6 +28,8 @@ class SolverManager:
         self.solvers[("Cultural Algorithm", 1)] = SimpleGASolver
         self.solvers[("Enhanced GA", 2)] = EnhancedGASolver
         self.solvers[("Cultural Algorithm", 2)] = EnhancedGASolver
+        self.solvers[("Cultural GA", 3)] = CulturalGASolver
+        self.solvers[("Cultural Algorithm", 3)] = CulturalGASolver
         self.solvers[("Cultural Algorithm", 4)] = CulturalAlgorithmSolver
 
     def register_solver(self, algorithm_name: str, level: int, solver_class):
@@ -60,7 +62,7 @@ class SolverManager:
 
         try:
 
-            if "Random Walk" in algorithm_name or "Ordered Walk" in algorithm_name or "Pure Backtracking" in algorithm_name or "Enhanced Backtracking" in algorithm_name or "Simple GA" in algorithm_name or "Enhanced GA" in algorithm_name or (algorithm_name == "Cultural Algorithm" and level in [0, 1, 2]):
+            if "Random Walk" in algorithm_name or "Ordered Walk" in algorithm_name or "Pure Backtracking" in algorithm_name or "Enhanced Backtracking" in algorithm_name or "Simple GA" in algorithm_name or "Enhanced GA" in algorithm_name or "Cultural GA" in algorithm_name or (algorithm_name == "Cultural Algorithm" and level in [0, 1, 2, 3]):
                 solver = solver_class(n=N, level=level)
                 success, path = solver.solve(start_x, start_y)
 

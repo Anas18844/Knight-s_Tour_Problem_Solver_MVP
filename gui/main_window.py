@@ -349,6 +349,43 @@ class KnightTourGUI:
                     'coverage_percent': 100 * len(set(path)) / (board_size * board_size) if board_size > 0 else 0
                 }
 
+            elif level == 2 and algorithm == "Cultural Algorithm":
+                from algorithms.cultural import EnhancedGASolver
+                solver = EnhancedGASolver(n=board_size, level=level)
+
+                start_time = datetime.now()
+                success, path = solver.solve(start_pos[0], start_pos[1])
+                end_time = datetime.now()
+
+                stats = {
+                    'algorithm': f'Enhanced GA (Level {level})',
+                    'execution_time': (end_time - start_time).total_seconds(),
+                    'best_fitness': solver.best_fitness,
+                    'generations': solver.generations,
+                    'mutation_count': solver.mutation_count,
+                    'crossover_count': solver.crossover_count,
+                    'coverage_percent': 100 * len(set(path)) / (board_size * board_size) if board_size > 0 else 0
+                }
+
+            elif level == 3 and algorithm == "Cultural Algorithm":
+                from algorithms.cultural import CulturalGASolver
+                solver = CulturalGASolver(n=board_size, level=level)
+
+                start_time = datetime.now()
+                success, path = solver.solve(start_pos[0], start_pos[1])
+                end_time = datetime.now()
+
+                stats = {
+                    'algorithm': f'Cultural GA (Level {level})',
+                    'execution_time': (end_time - start_time).total_seconds(),
+                    'best_fitness': solver.best_fitness,
+                    'generations': solver.generations,
+                    'belief_space_generations': solver.belief_space.generation_count,
+                    'mutation_count': solver.mutation_count,
+                    'crossover_count': solver.crossover_count,
+                    'coverage_percent': 100 * len(set(path)) / (board_size * board_size) if board_size > 0 else 0
+                }
+
             elif level == 2 and algorithm == "Backtracking":
                 from algorithms.backtracking import PureBacktracking
                 solver = PureBacktracking(n=board_size, level=level)
