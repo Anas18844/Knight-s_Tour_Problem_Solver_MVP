@@ -285,17 +285,14 @@ class KnightTourGUI:
                 self.progress_queue.put(('progress', percent, message))
 
             # Create solver based on algorithm and level
-            if level == 0:
-                # Level 0 - Random Walk (baseline)
-                from algorithms.level0_random import RandomKnightWalk
+            if level == 0 and algorithm == "Backtracking":
+                from algorithms.backtracking import RandomKnightWalk
                 solver = RandomKnightWalk(n=board_size, level=level)
 
-                # Solve
                 start_time = datetime.now()
                 success, path = solver.solve(start_pos[0], start_pos[1])
                 end_time = datetime.now()
 
-                # Build stats dictionary for consistency
                 stats = {
                     'algorithm': f'Random Walk (Level {level})',
                     'execution_time': (end_time - start_time).total_seconds(),
@@ -304,7 +301,23 @@ class KnightTourGUI:
                     'coverage_percent': 100 * len(path) / (board_size * board_size) if board_size > 0 else 0
                 }
 
-            elif level == 1:
+            elif level == 0 and algorithm == "Cultural Algorithm":
+                from algorithms.cultural import RandomKnightWalk
+                solver = RandomKnightWalk(n=board_size, level=level)
+
+                start_time = datetime.now()
+                success, path = solver.solve(start_pos[0], start_pos[1])
+                end_time = datetime.now()
+
+                stats = {
+                    'algorithm': f'Random Walk (Level {level})',
+                    'execution_time': (end_time - start_time).total_seconds(),
+                    'total_moves': solver.total_moves,
+                    'dead_ends_hit': solver.dead_ends_hit,
+                    'coverage_percent': 100 * len(path) / (board_size * board_size) if board_size > 0 else 0
+                }
+
+            elif level == 1 and algorithm == "Backtracking":
                 from algorithms.backtracking import OrderedKnightWalk
                 solver = OrderedKnightWalk(n=board_size, level=level)
 
@@ -320,7 +333,23 @@ class KnightTourGUI:
                     'coverage_percent': 100 * len(path) / (board_size * board_size) if board_size > 0 else 0
                 }
 
-            elif level == 2:
+            elif level == 1 and algorithm == "Cultural Algorithm":
+                from algorithms.cultural import SimpleGASolver
+                solver = SimpleGASolver(n=board_size, level=level)
+
+                start_time = datetime.now()
+                success, path = solver.solve(start_pos[0], start_pos[1])
+                end_time = datetime.now()
+
+                stats = {
+                    'algorithm': f'Simple GA (Level {level})',
+                    'execution_time': (end_time - start_time).total_seconds(),
+                    'best_fitness': solver.best_fitness,
+                    'generations': solver.generations,
+                    'coverage_percent': 100 * len(set(path)) / (board_size * board_size) if board_size > 0 else 0
+                }
+
+            elif level == 2 and algorithm == "Backtracking":
                 from algorithms.backtracking import PureBacktracking
                 solver = PureBacktracking(n=board_size, level=level)
 
@@ -336,7 +365,7 @@ class KnightTourGUI:
                     'coverage_percent': 100 * len(path) / (board_size * board_size) if board_size > 0 else 0
                 }
 
-            elif level == 3:
+            elif level == 3 and algorithm == "Backtracking":
                 from algorithms.backtracking import EnhancedBacktracking
                 solver = EnhancedBacktracking(n=board_size, level=level)
 
@@ -361,17 +390,19 @@ class KnightTourGUI:
                 success, path, stats = solver.solve()
                 end_time = datetime.now()
 
-            else:  # Cultural Algorithm
+            elif level == 4 and algorithm == "Cultural Algorithm":
                 solver = CulturalAlgorithmSolver(board_size, start_pos,
                                                population_size=100,
                                                max_generations=500,
                                                timeout=60.0,
                                                progress_callback=progress_callback)
 
-                # Solve
                 start_time = datetime.now()
                 success, path, stats = solver.solve()
                 end_time = datetime.now()
+
+            else:
+                raise ValueError(f"Unsupported algorithm: {algorithm} Level {level}")
 
             # Send results back to main thread
             self.progress_queue.put(('complete', success, path, stats, start_time, end_time))

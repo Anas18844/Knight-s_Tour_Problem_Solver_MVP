@@ -11,7 +11,7 @@ class SolverManager:
 
     def _register_default_solvers(self):
         from algorithms.backtracking import RandomKnightWalk as BTRandomWalk, OrderedKnightWalk, PureBacktracking, EnhancedBacktracking, BacktrackingSolver
-        from algorithms.cultural import RandomKnightWalk as CARandomWalk, CulturalAlgorithmSolver
+        from algorithms.cultural import RandomKnightWalk as CARandomWalk, SimpleGASolver, CulturalAlgorithmSolver
         from algorithms.level0_random import RandomKnightWalk
 
         self.solvers[("Random Walk", 0)] = RandomKnightWalk
@@ -24,7 +24,9 @@ class SolverManager:
         self.solvers[("Backtracking", 3)] = EnhancedBacktracking
         self.solvers[("Backtracking", 4)] = BacktrackingSolver
         self.solvers[("Cultural Algorithm", 0)] = CARandomWalk
-        self.solvers[("Cultural Algorithm", 1)] = CulturalAlgorithmSolver
+        self.solvers[("Simple GA", 1)] = SimpleGASolver
+        self.solvers[("Cultural Algorithm", 1)] = SimpleGASolver
+        self.solvers[("Cultural Algorithm", 4)] = CulturalAlgorithmSolver
 
     def register_solver(self, algorithm_name: str, level: int, solver_class):
         self.solvers[(algorithm_name, level)] = solver_class
@@ -56,16 +58,19 @@ class SolverManager:
 
         try:
 
-            if "Random Walk" in algorithm_name or "Ordered Walk" in algorithm_name or "Pure Backtracking" in algorithm_name or "Enhanced Backtracking" in algorithm_name:
+            if "Random Walk" in algorithm_name or "Ordered Walk" in algorithm_name or "Pure Backtracking" in algorithm_name or "Enhanced Backtracking" in algorithm_name or "Simple GA" in algorithm_name or (algorithm_name == "Cultural Algorithm" and level in [0, 1]):
                 solver = solver_class(n=N, level=level)
                 success, path = solver.solve(start_x, start_y)
 
+                unique_squares = len(set(path)) if path else 0
                 stats = {
                     'total_moves': getattr(solver, 'total_moves', 0),
                     'dead_ends_hit': getattr(solver, 'dead_ends_hit', 0),
-                    'coverage_percent': 100 * len(path) / (N * N) if N > 0 else 0,
+                    'coverage_percent': 100 * unique_squares / (N * N) if N > 0 else 0,
                     'recursive_calls': getattr(solver, 'recursive_calls', 0),
                     'backtrack_count': getattr(solver, 'backtrack_count', 0),
+                    'best_fitness': getattr(solver, 'best_fitness', 0),
+                    'generations': getattr(solver, 'generations', 0),
                 }
 
             elif "Backtracking" in algorithm_name:
