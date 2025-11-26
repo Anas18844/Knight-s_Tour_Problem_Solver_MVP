@@ -143,24 +143,6 @@ class KnightTourGUI:
             row=row, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=10)
         row += 1
 
-        # Animation controls
-        ttk.Label(parent, text="Animation Speed (ms):", font=('Arial', 10, 'bold')).grid(
-            row=row, column=0, sticky=tk.W, pady=5)
-        row += 1
-
-        speed_frame = ttk.Frame(parent)
-        speed_frame.grid(row=row, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=5)
-
-        self.speed_slider = ttk.Scale(speed_frame, from_=10, to=1000,
-                                     variable=self.animation_speed,
-                                     orient=tk.HORIZONTAL, length=200,
-                                     command=self._on_speed_change)
-        self.speed_slider.grid(row=0, column=0, sticky=(tk.W, tk.E), padx=5)
-
-        self.speed_value_label = ttk.Label(speed_frame, text="200 ms")
-        self.speed_value_label.grid(row=0, column=1, padx=5)
-        row += 1
-
         # Separator
         ttk.Separator(parent, orient=tk.HORIZONTAL).grid(
             row=row, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=10)
@@ -253,11 +235,6 @@ class KnightTourGUI:
         self.start_position = (0, 0)
         self.start_pos_label.config(text="(0, 0)")
 
-    def _on_speed_change(self, value):
-        """Handle animation speed change."""
-        speed = int(float(value))
-        self.speed_value_label.config(text=f"{speed} ms")
-        self.board_canvas.set_animation_speed(speed)
 
     def _on_board_click(self, x, y):
         """Handle board click to set start position."""
@@ -311,7 +288,7 @@ class KnightTourGUI:
             if level == 0:
                 # Level 0 - Random Walk (baseline)
                 from algorithms.level0_random import RandomKnightWalk
-                solver = RandomKnightWalk(n=board_size, level=level, timeout=60.0)
+                solver = RandomKnightWalk(n=board_size, level=level)
 
                 # Solve
                 start_time = datetime.now()
@@ -328,21 +305,50 @@ class KnightTourGUI:
                 }
 
             elif level == 1:
-                # Level 1 - Ordered Walk (deterministic baseline)
-                from algorithms.level1_ordered import OrderedKnightWalk
-                solver = OrderedKnightWalk(n=board_size, level=level, timeout=60.0)
+                from algorithms.backtracking import OrderedKnightWalk
+                solver = OrderedKnightWalk(n=board_size, level=level)
 
-                # Solve
                 start_time = datetime.now()
                 success, path = solver.solve(start_pos[0], start_pos[1])
                 end_time = datetime.now()
 
-                # Build stats dictionary for consistency
                 stats = {
                     'algorithm': f'Ordered Walk (Level {level})',
                     'execution_time': (end_time - start_time).total_seconds(),
                     'total_moves': solver.total_moves,
                     'dead_ends_hit': solver.dead_ends_hit,
+                    'coverage_percent': 100 * len(path) / (board_size * board_size) if board_size > 0 else 0
+                }
+
+            elif level == 2:
+                from algorithms.backtracking import PureBacktracking
+                solver = PureBacktracking(n=board_size, level=level)
+
+                start_time = datetime.now()
+                success, path = solver.solve(start_pos[0], start_pos[1])
+                end_time = datetime.now()
+
+                stats = {
+                    'algorithm': f'Pure Backtracking (Level {level})',
+                    'execution_time': (end_time - start_time).total_seconds(),
+                    'recursive_calls': solver.recursive_calls,
+                    'backtrack_count': solver.backtrack_count,
+                    'coverage_percent': 100 * len(path) / (board_size * board_size) if board_size > 0 else 0
+                }
+
+            elif level == 3:
+                from algorithms.backtracking import EnhancedBacktracking
+                solver = EnhancedBacktracking(n=board_size, level=level)
+
+                start_time = datetime.now()
+                success, path = solver.solve(start_pos[0], start_pos[1])
+                end_time = datetime.now()
+
+                stats = {
+                    'algorithm': f'Enhanced Backtracking (Level {level})',
+                    'execution_time': (end_time - start_time).total_seconds(),
+                    'recursive_calls': solver.recursive_calls,
+                    'backtrack_count': solver.backtrack_count,
                     'coverage_percent': 100 * len(path) / (board_size * board_size) if board_size > 0 else 0
                 }
 
@@ -415,7 +421,7 @@ class KnightTourGUI:
             self._save_to_database(success, path, stats, start_time)
 
             # Start animation
-            self.board_canvas.start_animation(path, speed=self.animation_speed.get())
+            self.board_canvas.start_animation(path, speed=200)
 
         else:
             # Calculate coverage percentage

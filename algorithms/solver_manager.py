@@ -10,23 +10,20 @@ class SolverManager:
         self._register_default_solvers()
 
     def _register_default_solvers(self):
-        from algorithms.backtracking import BacktrackingSolver
-        from algorithms.cultural import CulturalAlgorithmSolver
+        from algorithms.backtracking import RandomKnightWalk as BTRandomWalk, OrderedKnightWalk, PureBacktracking, EnhancedBacktracking, BacktrackingSolver
+        from algorithms.cultural import RandomKnightWalk as CARandomWalk, CulturalAlgorithmSolver
         from algorithms.level0_random import RandomKnightWalk
-        from algorithms.level1_ordered import OrderedKnightWalk
 
-        # Register Level 0 - Random Walk (baseline)
         self.solvers[("Random Walk", 0)] = RandomKnightWalk
-
-        # Register Level 1 - Ordered Walk (deterministic baseline)
+        self.solvers[("Backtracking", 0)] = BTRandomWalk
         self.solvers[("Ordered Walk", 1)] = OrderedKnightWalk
-
-        # Level 2 and 3 will be added in future
-
-        # Register Level 4 - Backtracking with Warnsdorff's Heuristic
+        self.solvers[("Backtracking", 1)] = OrderedKnightWalk
+        self.solvers[("Pure Backtracking", 2)] = PureBacktracking
+        self.solvers[("Backtracking", 2)] = PureBacktracking
+        self.solvers[("Enhanced Backtracking", 3)] = EnhancedBacktracking
+        self.solvers[("Backtracking", 3)] = EnhancedBacktracking
         self.solvers[("Backtracking", 4)] = BacktrackingSolver
-
-        # Register Cultural Algorithm solvers
+        self.solvers[("Cultural Algorithm", 0)] = CARandomWalk
         self.solvers[("Cultural Algorithm", 1)] = CulturalAlgorithmSolver
 
     def register_solver(self, algorithm_name: str, level: int, solver_class):
@@ -59,15 +56,16 @@ class SolverManager:
 
         try:
 
-            if "Random Walk" in algorithm_name or "Ordered Walk" in algorithm_name:
-                solver = solver_class(n=N, level=level, timeout=timeout)
+            if "Random Walk" in algorithm_name or "Ordered Walk" in algorithm_name or "Pure Backtracking" in algorithm_name or "Enhanced Backtracking" in algorithm_name:
+                solver = solver_class(n=N, level=level)
                 success, path = solver.solve(start_x, start_y)
 
-                # Extract stats from walk solvers (Level 0 and 1)
                 stats = {
                     'total_moves': getattr(solver, 'total_moves', 0),
                     'dead_ends_hit': getattr(solver, 'dead_ends_hit', 0),
                     'coverage_percent': 100 * len(path) / (N * N) if N > 0 else 0,
+                    'recursive_calls': getattr(solver, 'recursive_calls', 0),
+                    'backtrack_count': getattr(solver, 'backtrack_count', 0),
                 }
 
             elif "Backtracking" in algorithm_name:
