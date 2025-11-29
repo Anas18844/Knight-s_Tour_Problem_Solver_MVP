@@ -1,9 +1,3 @@
-"""Backtracking algorithm with Warnsdorff's heuristic for Knight's Tour.
-
-Warnsdorff's Rule: Always move the knight to the square from which the knight
-will have the fewest onward moves. This heuristic dramatically improves performance.
-"""
-
 import time
 from typing import List, Tuple, Optional, Callable
 from .level3_enhanced import EnhancedBacktracking
@@ -101,3 +95,4 @@ class BacktrackingSolver(EnhancedBacktracking):
             stats['error'] = f'Timeout after {self.timeout} seconds'
 
         return success, self.solution_path.copy(), stats
+
