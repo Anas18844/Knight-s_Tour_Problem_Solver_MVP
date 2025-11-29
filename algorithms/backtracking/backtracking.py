@@ -101,29 +101,3 @@ class BacktrackingSolver(EnhancedBacktracking):
             stats['error'] = f'Timeout after {self.timeout} seconds'
 
         return success, self.solution_path.copy(), stats
-
-    def get_board_state(self) -> List[List[int]]:
-        return [row[:] for row in self.board]
-
-    def print_solution(self):
-        if not self.solution_path:
-            print("No solution found")
-            return
-
-        print(f"\nKnight's Tour Solution ({self.n}x{self.n}):")
-        print(f"Starting position: {self.start_pos}")
-        print(f"Total moves: {len(self.solution_path)}")
-        print(f"Recursive calls: {self.recursive_calls}")
-        print("\nBoard (move order):")
-
-        print("     ", end="")
-        for i in range(self.n):
-            print(f"{i:3}", end=" ")
-        print()
-
-        for i in range(self.n):
-            print(f"  {i:2} ", end="")
-            for j in range(self.n):
-                print(f"{self.board[i][j]:3}", end=" ")
-            print()
-        print()
