@@ -9,8 +9,6 @@ try:
     from gui import KnightTourGUI
 except ImportError as e:
     print(f"Error importing GUI: {e}")
-    print("Please ensure all required packages are installed:")
-    print("pip install -r requirements.txt")
     sys.exit(1)
 
 

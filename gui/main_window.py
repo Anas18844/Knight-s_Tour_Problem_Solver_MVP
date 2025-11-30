@@ -1,5 +1,3 @@
-"""Main GUI window for Knight's Tour Problem Solver."""
-
 import tkinter as tk
 from tkinter import ttk, messagebox, scrolledtext
 import threading
@@ -15,25 +13,16 @@ from gui.board_canvas import BoardCanvas
 
 
 class KnightTourGUI:
-    """Main GUI application for Knight's Tour Problem Solver."""
 
     def __init__(self, root):
-        """
-        Initialize main GUI window.
-
-        Args:
-            root: Tkinter root window
-        """
         self.root = root
-        self.root.title("Knight's Tour Problem Solver - University Project MVP")
+        self.root.title("Knight's Tour Problem Solver - AI University Project")
         self.root.geometry("1400x900")
         self.root.resizable(True, True)
 
-        # Initialize components
         self.db_manager = DatabaseManager()
         self.report_generator = ReportGenerator()
 
-        # State variables
         self.current_algorithm = tk.StringVar(value="Backtracking")
         self.algorithm_level = tk.StringVar(value="Level 1")
         self.board_size = tk.IntVar(value=8)
@@ -54,7 +43,6 @@ class KnightTourGUI:
         self._monitor_progress()
 
     def _create_ui(self):
-        """Create all UI elements."""
         # Main container
         main_container = ttk.Frame(self.root, padding="10")
         main_container.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
@@ -76,10 +64,8 @@ class KnightTourGUI:
         self._create_board_panel(right_panel)
 
     def _create_control_panel(self, parent):
-        """Create control panel with settings."""
         # Title
-        title_label = ttk.Label(parent, text="Knight's Tour Solver",
-                               font=('Arial', 16, 'bold'))
+        title_label = ttk.Label(parent, text="Knight's Tour Solver",font=('Arial', 16, 'bold'))
         title_label.grid(row=0, column=0, columnspan=2, pady=10)
 
         row = 1
@@ -87,26 +73,21 @@ class KnightTourGUI:
         # Board size input
         ttk.Label(parent, text="Board Size (5-12):", font=('Arial', 10, 'bold')).grid(
             row=row, column=0, sticky=tk.W, pady=5)
-        board_size_spinbox = ttk.Spinbox(parent, from_=5, to=12, textvariable=self.board_size,
-                                        width=10, command=self._on_board_size_change)
+        board_size_spinbox = ttk.Spinbox(parent, from_=5, to=12, textvariable=self.board_size,width=10, command=self._on_board_size_change)
         board_size_spinbox.grid(row=row, column=1, sticky=tk.W, pady=5)
         row += 1
 
         # Algorithm selection
         ttk.Label(parent, text="Algorithm:", font=('Arial', 10, 'bold')).grid(
             row=row, column=0, sticky=tk.W, pady=5)
-        algo_combo = ttk.Combobox(parent, textvariable=self.current_algorithm,
-                                 values=["Backtracking", "Cultural Algorithm"],
-                                 state="readonly", width=20)
+        algo_combo = ttk.Combobox(parent, textvariable=self.current_algorithm,values=["Backtracking", "Cultural Algorithm"],state="readonly", width=20)
         algo_combo.grid(row=row, column=1, sticky=tk.W, pady=5)
         row += 1
 
         # Algorithm Level selection
         ttk.Label(parent, text="Level:", font=('Arial', 10, 'bold')).grid(
             row=row, column=0, sticky=tk.W, pady=5)
-        level_combo = ttk.Combobox(parent, textvariable=self.algorithm_level,
-                                   values=["Level 0", "Level 1", "Level 2", "Level 3", "Level 4"],
-                                   state="readonly", width=20)
+        level_combo = ttk.Combobox(parent, textvariable=self.algorithm_level,values=["Level 0", "Level 1", "Level 2", "Level 3", "Level 4"],state="readonly", width=20)
         level_combo.grid(row=row, column=1, sticky=tk.W, pady=5)
         row += 1
 
@@ -116,10 +97,8 @@ class KnightTourGUI:
         row += 1
 
         # DASHBOARD BUTTON - Prominent placement
-        dashboard_button = ttk.Button(parent, text="📊 OPEN DASHBOARD",
-                                      command=self._show_dashboard)
-        dashboard_button.grid(row=row, column=0, columnspan=2, sticky=(tk.W, tk.E),
-                             padx=10, pady=10, ipady=10)
+        dashboard_button = ttk.Button(parent, text="OPEN DASHBOARD",command=self._show_dashboard)
+        dashboard_button.grid(row=row, column=0, columnspan=2, sticky=(tk.W, tk.E),padx=10, pady=10, ipady=10)
         row += 1
 
         # Separator
@@ -143,32 +122,21 @@ class KnightTourGUI:
             row=row, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=10)
         row += 1
 
-        # Separator
-        ttk.Separator(parent, orient=tk.HORIZONTAL).grid(
-            row=row, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=10)
-        row += 1
-
         # Action buttons
         button_frame = ttk.Frame(parent)
         button_frame.grid(row=row, column=0, columnspan=2, pady=10)
         row += 1
 
-        self.run_button = ttk.Button(button_frame, text="▶ Run Solver",
-                                     command=self._run_solver, width=15)
+        self.run_button = ttk.Button(button_frame, text="Run Solver",command=self._run_solver, width=15)
         self.run_button.grid(row=0, column=0, padx=5, pady=5)
 
-        self.stop_button = ttk.Button(button_frame, text="⏹ Stop",
-                                      command=self._stop_solver, width=15,
-                                      state=tk.DISABLED)
+        self.stop_button = ttk.Button(button_frame, text="Stop",command=self._stop_solver, width=15,state=tk.DISABLED)
         self.stop_button.grid(row=0, column=1, padx=5, pady=5)
 
-        self.skip_anim_button = ttk.Button(button_frame, text="⏩ Skip Animation",
-                                          command=self._skip_animation, width=15,
-                                          state=tk.DISABLED)
+        self.skip_anim_button = ttk.Button(button_frame, text="Skip Animation",command=self._skip_animation, width=15,state=tk.DISABLED)
         self.skip_anim_button.grid(row=1, column=0, padx=5, pady=5)
 
-        self.clear_button = ttk.Button(button_frame, text="🗑 Clear Board",
-                                       command=self._clear_board, width=15)
+        self.clear_button = ttk.Button(button_frame, text="Clear Board",command=self._clear_board, width=15)
         self.clear_button.grid(row=1, column=1, padx=5, pady=5)
 
         # Progress bar
@@ -193,20 +161,15 @@ class KnightTourGUI:
         button_frame = ttk.Frame(parent)
         button_frame.grid(row=row, column=0, columnspan=2, pady=10)
 
-        ttk.Button(button_frame, text="📄 Generate Report",
-                  command=self._generate_report, width=22).grid(row=0, column=0, padx=5, pady=5)
+        ttk.Button(button_frame, text="Generate Report",command=self._generate_report, width=22).grid(row=0, column=0, padx=5, pady=5)
 
-        ttk.Button(button_frame, text="📈 View History",
-                  command=self._view_history, width=22).grid(row=1, column=0, padx=5, pady=5)
+        ttk.Button(button_frame, text="View History",command=self._view_history, width=22).grid(row=1, column=0, padx=5, pady=5)
 
-        ttk.Button(button_frame, text="❓ Help",
-                  command=self._show_help, width=22).grid(row=2, column=0, padx=5, pady=5)
+        ttk.Button(button_frame, text="Help",command=self._show_help, width=22).grid(row=2, column=0, padx=5, pady=5)
 
     def _create_board_panel(self, parent):
-        """Create board visualization panel."""
         # Title
-        board_title = ttk.Label(parent, text="Chessboard Visualization",
-                               font=('Arial', 14, 'bold'))
+        board_title = ttk.Label(parent, text="Chessboard Visualization",font=('Arial', 14, 'bold'))
         board_title.grid(row=0, column=0, pady=10)
 
         # Board canvas container
@@ -214,8 +177,7 @@ class KnightTourGUI:
         canvas_frame.grid(row=1, column=0, sticky=(tk.W, tk.E, tk.N, tk.S), pady=10)
 
         # Create board canvas
-        self.board_canvas = BoardCanvas(canvas_frame, board_size=self.board_size.get(),
-                                       cell_size=60)
+        self.board_canvas = BoardCanvas(canvas_frame, board_size=self.board_size.get(),cell_size=60)
         self.board_canvas.pack(padx=20, pady=20)
         self.board_canvas.set_click_callback(self._on_board_click)
 
@@ -223,11 +185,9 @@ class KnightTourGUI:
         parent.rowconfigure(1, weight=1)
 
     def _on_board_size_change(self):
-        """Handle board size change."""
         size = self.board_size.get()
         if size < 5 or size > 12:
-            messagebox.showwarning("Invalid Size",
-                                 "Board size must be between 5 and 12.")
+            messagebox.showwarning("Invalid Size","Board size must be between 5 and 12.")
             self.board_size.set(max(5, min(12, size)))
             return
 
@@ -242,17 +202,14 @@ class KnightTourGUI:
         self.start_pos_label.config(text=f"({x}, {y})")
 
     def _run_solver(self):
-        """Run the selected algorithm in a separate thread."""
         if self.is_running:
-            messagebox.showwarning("Already Running",
-                                 "Solver is already running. Please wait or stop it.")
+            messagebox.showwarning("Already Running","Solver is already running. Please wait or stop it.")
             return
 
         # Validate inputs
         board_size = self.board_size.get()
         if board_size < 5 or board_size > 12:
-            messagebox.showerror("Invalid Input",
-                               "Board size must be between 5 and 12.")
+            messagebox.showerror("Invalid Input","Board size must be between 5 and 12.")
             return
 
         # Clear previous results
@@ -270,7 +227,6 @@ class KnightTourGUI:
         self.solver_thread.start()
 
     def _solve_in_thread(self):
-        """Execute solver algorithm in separate thread."""
         try:
             algorithm = self.current_algorithm.get()
             board_size = self.board_size.get()
@@ -419,8 +375,7 @@ class KnightTourGUI:
                 }
 
             elif level == 4 and algorithm == "Backtracking":
-                solver = BacktrackingSolver(board_size, start_pos, timeout=60.0,
-                                          progress_callback=progress_callback)
+                solver = BacktrackingSolver(board_size, start_pos, timeout=60.0,progress_callback=progress_callback)
 
                 # Solve
                 start_time = datetime.now()
@@ -428,11 +383,7 @@ class KnightTourGUI:
                 end_time = datetime.now()
 
             elif level == 4 and algorithm == "Cultural Algorithm":
-                solver = CulturalAlgorithmSolver(board_size, start_pos,
-                                               population_size=100,
-                                               max_generations=500,
-                                               timeout=60.0,
-                                               progress_callback=progress_callback)
+                solver = CulturalAlgorithmSolver(board_size, start_pos,population_size=100,max_generations=500,timeout=60.0,progress_callback=progress_callback)
 
                 start_time = datetime.now()
                 success, path, stats = solver.solve()
@@ -448,7 +399,6 @@ class KnightTourGUI:
             self.progress_queue.put(('error', str(e)))
 
     def _monitor_progress(self):
-        """Monitor progress queue and update UI."""
         try:
             while True:
                 message = self.progress_queue.get_nowait()
@@ -473,7 +423,6 @@ class KnightTourGUI:
         self.root.after(100, self._monitor_progress)
 
     def _handle_solution(self, success, path, stats, start_time, end_time):
-        """Handle solution completion."""
         self.is_running = False
         self.current_solution = path
         self.current_stats = stats
@@ -511,7 +460,6 @@ class KnightTourGUI:
                 self.board_canvas.start_animation(path, speed=self.animation_speed.get(), is_partial=True)
 
     def _handle_error(self, error_msg):
-        """Handle error during solving."""
         self.is_running = False
         self.run_button.config(state=tk.NORMAL)
         self.stop_button.config(state=tk.DISABLED)
@@ -520,7 +468,6 @@ class KnightTourGUI:
 
 
     def _save_to_database(self, success, path, stats, start_time):
-        """Save run results to database."""
         try:
             run_id = self.db_manager.insert_run(
                 algorithm=stats.get('algorithm', 'Unknown'),
@@ -585,9 +532,7 @@ class KnightTourGUI:
                 run_data, self.current_solution, all_runs
             )
 
-            messagebox.showinfo("Report Generated",
-                              f"Reports saved successfully:\n\n" +
-                              "\n".join([f"- {k}: {v}" for k, v in report_files.items()]))
+            messagebox.showinfo("Report Generated",f"Reports saved successfully:\n\n" +"\n".join([f"- {k}: {v}" for k, v in report_files.items()]))
 
         except Exception as e:
             messagebox.showerror("Report Error", f"Failed to generate report:\n{e}")
@@ -611,8 +556,7 @@ class KnightTourGUI:
             tree_frame = ttk.Frame(popup)
             tree_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
 
-            tree = ttk.Treeview(tree_frame, columns=('ID', 'Algorithm', 'Size', 'Time', 'Steps', 'Result', 'Date'),
-                              show='headings')
+            tree = ttk.Treeview(tree_frame, columns=('ID', 'Algorithm', 'Size', 'Time', 'Steps', 'Result', 'Date'),show='headings')
 
             tree.heading('ID', text='ID')
             tree.heading('Algorithm', text='Algorithm')
@@ -735,8 +679,7 @@ class KnightTourGUI:
         canvas.configure(yscrollcommand=scrollbar.set)
 
         # Title
-        title_label = ttk.Label(scrollable_frame, text="Performance Metrics Analysis",
-                               font=('Arial', 16, 'bold'))
+        title_label = ttk.Label(scrollable_frame, text="Performance Metrics Analysis",font=('Arial', 16, 'bold'))
         title_label.grid(row=0, column=0, columnspan=2, pady=10)
 
         row = 1
@@ -844,8 +787,7 @@ Historical Comparison (Same Algorithm & Board Size):
     def _create_algorithm_analysis_tab(self, parent):
         """Create detailed algorithm analysis tab with technical metrics."""
         # Title
-        title_label = ttk.Label(parent, text="Detailed Algorithm Analysis",
-                               font=('Arial', 16, 'bold'))
+        title_label = ttk.Label(parent, text="Detailed Algorithm Analysis",font=('Arial', 16, 'bold'))
         title_label.pack(pady=10)
 
         # Create scrolled text for simple display
@@ -885,7 +827,7 @@ Historical Comparison (Same Algorithm & Board Size):
 
         content = f"""
 ╔══════════════════════════════════════════════════════════════════════════════╗
-║                    DETAILED ALGORITHM ANALYSIS                                ║
+║                    DETAILED ALGORITHM ANALYSIS                               ║
 ╚══════════════════════════════════════════════════════════════════════════════╝
 
 ALGORITHM: {self.current_stats.get('algorithm', 'N/A')}
@@ -893,7 +835,7 @@ LEVEL: {self.algorithm_level.get()}
 BOARD SIZE: {board_size}×{board_size}
 
 ════════════════════════════════════════════════════════════════════════════════
-1. WARNSDORFF'S HEURISTIC EFFECTIVENESS
+            1. WARNSDORFF'S HEURISTIC EFFECTIVENESS
 ════════════════════════════════════════════════════════════════════════════════
 
 Heuristic Rule:
@@ -927,7 +869,7 @@ Move Selection Quality:      """
         content += f"""
 
 ════════════════════════════════════════════════════════════════════════════════
-2. BACKTRACKING OPERATIONS ANALYSIS
+            2. BACKTRACKING OPERATIONS ANALYSIS
 ════════════════════════════════════════════════════════════════════════════════
 
 Call Breakdown:
@@ -964,7 +906,7 @@ Performance Classification: """
         content += f"""
 
 ════════════════════════════════════════════════════════════════════════════════
-3. COMPLEXITY ANALYSIS
+            3. COMPLEXITY ANALYSIS
 ════════════════════════════════════════════════════════════════════════════════
 
 Time Complexity:
@@ -985,7 +927,7 @@ Execution Metrics:
   Time per Move:       {(execution_time/max(1, solution_length))*1000:.3f} ms
 
 ════════════════════════════════════════════════════════════════════════════════
-END OF ANALYSIS
+                            END OF ANALYSIS
 ════════════════════════════════════════════════════════════════════════════════
 """
         return content

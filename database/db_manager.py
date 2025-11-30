@@ -6,21 +6,13 @@ from typing import Optional, List, Tuple, Dict
 
 
 class DatabaseManager:
-    """Manages SQLite database operations for Knight's Tour solver."""
 
     def __init__(self, db_path: str = "knights_tour.db"):
-        """
-        Initialize database manager.
-
-        Args:
-            db_path: Path to SQLite database file
-        """
         self.db_path = db_path
         self.connection = None
         self._initialize_database()
 
     def _initialize_database(self):
-        """Create database and tables if they don't exist."""
         try:
             self.connection = sqlite3.connect(self.db_path, check_same_thread=False)
             self.connection.row_factory = sqlite3.Row
@@ -41,9 +33,7 @@ class DatabaseManager:
             print(f"Schema file not found at: {schema_path}")
             raise
 
-    def insert_run(self, algorithm: str, board_size: int, execution_time: float,
-                   steps: int, result: str, solution_path: List[Tuple[int, int]],
-                   start_position: Tuple[int, int]) -> int:
+    def insert_run(self, algorithm: str, board_size: int, execution_time: float,steps: int, result: str, solution_path: List[Tuple[int, int]],start_position: Tuple[int, int]) -> int:
         try:
             cursor = self.connection.cursor()
             cursor.execute("""
@@ -95,8 +85,7 @@ class DatabaseManager:
             print(f"Error retrieving run: {e}")
             return None
 
-    def get_all_runs(self, algorithm: Optional[str] = None,
-                     board_size: Optional[int] = None) -> List[Dict]:
+    def get_all_runs(self, algorithm: Optional[str] = None,board_size: Optional[int] = None) -> List[Dict]:
         try:
             cursor = self.connection.cursor()
             query = "SELECT * FROM runs WHERE 1=1"
