@@ -1,5 +1,3 @@
-"""Report generator for Knight's Tour solver results."""
-
 import os
 import csv
 import json
@@ -10,15 +8,8 @@ import matplotlib.patches as patches
 
 
 class ReportGenerator:
-    """Generates reports, visualizations, and exports for Knight's Tour solutions."""
 
     def __init__(self, output_dir: str = "reports"):
-        """
-        Initialize report generator.
-
-        Args:
-            output_dir: Directory to save reports
-        """
         self.output_dir = output_dir
         os.makedirs(output_dir, exist_ok=True)
 
@@ -27,16 +18,6 @@ class ReportGenerator:
         return datetime.now().strftime("%Y%m%d_%H%M%S")
 
     def save_csv_report(self, run_data: dict, filename: str = None) -> str:
-        """
-        Save run data to CSV file.
-
-        Args:
-            run_data: Dictionary with run information
-            filename: Custom filename (optional)
-
-        Returns:
-            Path to saved CSV file
-        """
         if filename is None:
             timestamp = self.generate_timestamp()
             algorithm = run_data.get('algorithm', 'unknown').replace(' ', '_')
@@ -61,18 +42,7 @@ class ReportGenerator:
         print(f"CSV report saved: {filepath}")
         return filepath
 
-    def save_performance_chart(self, runs_data: List[dict],
-                               filename: str = None) -> str:
-        """
-        Create and save performance comparison chart.
-
-        Args:
-            runs_data: List of run data dictionaries
-            filename: Custom filename (optional)
-
-        Returns:
-            Path to saved chart
-        """
+    def save_performance_chart(self, runs_data: List[dict],filename: str = None) -> str:
         if not runs_data:
             print("No data to plot")
             return ""
@@ -141,18 +111,6 @@ class ReportGenerator:
     def save_solution_visualization(self, path: List[Tuple[int, int]],
                                     board_size: int, algorithm: str,
                                     filename: str = None) -> str:
-        """
-        Create and save visualization of knight's tour solution.
-
-        Args:
-            path: List of (x, y) coordinates
-            board_size: Size of the board
-            algorithm: Algorithm name
-            filename: Custom filename (optional)
-
-        Returns:
-            Path to saved visualization
-        """
         if filename is None:
             timestamp = self.generate_timestamp()
             filename = f"solution_{algorithm.replace(' ', '_')}_{board_size}x{board_size}_{timestamp}.png"
@@ -166,9 +124,7 @@ class ReportGenerator:
         for i in range(board_size):
             for j in range(board_size):
                 color = 'wheat' if (i + j) % 2 == 0 else 'saddlebrown'
-                square = patches.Rectangle((j, board_size - i - 1), 1, 1,
-                                          linewidth=1, edgecolor='black',
-                                          facecolor=color)
+                square = patches.Rectangle((j, board_size - i - 1), 1, 1,linewidth=1, edgecolor='black',facecolor=color)
                 ax.add_patch(square)
 
         # Draw path
@@ -182,8 +138,7 @@ class ReportGenerator:
                 display_y2 = board_size - y2 - 1
 
                 # Draw line
-                ax.plot([x1 + 0.5, x2 + 0.5], [display_y1 + 0.5, display_y2 + 0.5],
-                       'b-', linewidth=2, alpha=0.6)
+                ax.plot([x1 + 0.5, x2 + 0.5], [display_y1 + 0.5, display_y2 + 0.5],'b-', linewidth=2, alpha=0.6)
 
                 # Draw arrow at midpoint
                 mid_x = (x1 + x2) / 2 + 0.5
@@ -197,21 +152,17 @@ class ReportGenerator:
             # Mark start position
             start_x, start_y = path[0]
             display_start_y = board_size - start_y - 1
-            ax.plot(start_x + 0.5, display_start_y + 0.5, 'go', markersize=15,
-                   label='Start', zorder=5)
+            ax.plot(start_x + 0.5, display_start_y + 0.5, 'go', markersize=15,label='Start', zorder=5)
 
             # Mark end position
             end_x, end_y = path[-1]
             display_end_y = board_size - end_y - 1
-            ax.plot(end_x + 0.5, display_end_y + 0.5, 'ro', markersize=15,
-                   label='End', zorder=5)
+            ax.plot(end_x + 0.5, display_end_y + 0.5, 'ro', markersize=15,label='End', zorder=5)
 
             # Add move numbers on squares
             for move_num, (x, y) in enumerate(path):
                 display_y = board_size - y - 1
-                ax.text(x + 0.5, display_y + 0.5, str(move_num + 1),
-                       ha='center', va='center', fontsize=8, fontweight='bold',
-                       color='darkred')
+                ax.text(x + 0.5, display_y + 0.5, str(move_num + 1),ha='center', va='center', fontsize=8, fontweight='bold',color='darkred')
 
         ax.set_xlim(0, board_size)
         ax.set_ylim(0, board_size)
@@ -233,19 +184,7 @@ class ReportGenerator:
         print(f"Solution visualization saved: {filepath}")
         return filepath
 
-    def generate_comprehensive_report(self, run_data: dict, path: List[Tuple[int, int]],
-                                     all_runs: List[dict] = None) -> Dict[str, str]:
-        """
-        Generate comprehensive report including CSV, charts, and visualization.
-
-        Args:
-            run_data: Current run data
-            path: Solution path
-            all_runs: Historical runs for comparison (optional)
-
-        Returns:
-            Dictionary with paths to all generated files
-        """
+    def generate_comprehensive_report(self, run_data: dict, path: List[Tuple[int, int]],all_runs: List[dict] = None) -> Dict[str, str]:
         timestamp = self.generate_timestamp()
         algorithm = run_data.get('algorithm', 'unknown').replace(' ', '_')
         board_size = run_data.get('board_size', 0)
@@ -301,16 +240,6 @@ class ReportGenerator:
         return report_files
 
     def create_comparison_table(self, runs: List[dict], filename: str = None) -> str:
-        """
-        Create CSV comparison table for multiple runs.
-
-        Args:
-            runs: List of run data dictionaries
-            filename: Custom filename (optional)
-
-        Returns:
-            Path to saved comparison table
-        """
         if filename is None:
             timestamp = self.generate_timestamp()
             filename = f"comparison_table_{timestamp}.csv"
