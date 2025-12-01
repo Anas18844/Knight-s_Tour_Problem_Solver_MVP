@@ -1,21 +1,11 @@
-"""Cultural Algorithm for Knight's Tour problem."""
-
 import time
 import random
 from typing import List, Tuple, Optional, Callable, Set
 
 
 class Individual:
-    """Represents a candidate solution (knight's tour) in the population."""
 
     def __init__(self, board_size: int, start_pos: Tuple[int, int]):
-        """
-        Initialize an individual with random moves.
-
-        Args:
-            board_size: Size of the board
-            start_pos: Starting position
-        """
         self.board_size = board_size
         self.start_pos = start_pos
         self.path = [start_pos]
@@ -23,27 +13,12 @@ class Individual:
         self.visited = {start_pos}
 
     def add_move(self, position: Tuple[int, int]):
-        """Add a move to the path."""
         self.path.append(position)
         self.visited.add(position)
 
 
 class BeliefSpace:
-    """
-    Stores knowledge from successful solutions to guide evolution.
-
-    Contains:
-    - Normative knowledge: Best practices for moves
-    - Situational knowledge: Successful patterns and sequences
-    """
-
     def __init__(self, board_size: int):
-        """
-        Initialize belief space.
-
-        Args:
-            board_size: Size of the board
-        """
         self.board_size = board_size
         self.best_fitness = 0
         self.best_path = []
@@ -51,22 +26,10 @@ class BeliefSpace:
         # Normative knowledge: successful move patterns from each position
         self.successful_moves = {}  # {position: [list of good next moves]}
 
-        # Situational knowledge: best path found so far
         self.best_solution = None
-
-        # Domain knowledge: knight move offsets
-        self.valid_knight_moves = [
-            (2, 1), (1, 2), (-1, 2), (-2, 1),
-            (-2, -1), (-1, -2), (1, -2), (2, -1)
-        ]
+        self.valid_knight_moves = [(2, 1), (1, 2), (-1, 2), (-2, 1),(-2, -1), (-1, -2), (1, -2), (2, -1)]
 
     def update(self, individuals: List[Individual]):
-        """
-        Update belief space with knowledge from successful individuals.
-
-        Args:
-            individuals: List of individuals to learn from
-        """
         # Sort by fitness
         sorted_individuals = sorted(individuals, key=lambda ind: ind.fitness, reverse=True)
 
@@ -92,18 +55,7 @@ class BeliefSpace:
                 if next_pos not in self.successful_moves[current_pos]:
                     self.successful_moves[current_pos].append(next_pos)
 
-    def get_suggested_move(self, current_pos: Tuple[int, int],
-                          visited: Set[Tuple[int, int]]) -> Optional[Tuple[int, int]]:
-        """
-        Suggest next move based on belief space knowledge.
-
-        Args:
-            current_pos: Current position
-            visited: Set of visited positions
-
-        Returns:
-            Suggested next position or None
-        """
+    def get_suggested_move(self, current_pos: Tuple[int, int],visited: Set[Tuple[int, int]]) -> Optional[Tuple[int, int]]:
         if current_pos in self.successful_moves:
             # Filter out already visited positions
             valid_suggestions = [
@@ -117,33 +69,9 @@ class BeliefSpace:
 
 
 class CulturalAlgorithmSolver:
-    """
-    Solves Knight's Tour using Cultural Algorithm.
+    MOVES = [(2, 1), (1, 2), (-1, 2), (-2, 1),(-2, -1), (-1, -2), (1, -2), (2, -1)]
 
-    Cultural Algorithm combines:
-    1. Population Space: evolving candidate solutions
-    2. Belief Space: accumulated knowledge from successful solutions
-    """
-
-    MOVES = [
-        (2, 1), (1, 2), (-1, 2), (-2, 1),
-        (-2, -1), (-1, -2), (1, -2), (2, -1)
-    ]
-
-    def __init__(self, board_size: int, start_pos: Tuple[int, int] = (0, 0),
-                 population_size: int = 100, max_generations: int = 500,
-                 timeout: float = 60.0, progress_callback: Optional[Callable] = None):
-        """
-        Initialize Cultural Algorithm solver.
-
-        Args:
-            board_size: Size of the board
-            start_pos: Starting position
-            population_size: Number of individuals in population
-            max_generations: Maximum number of generations
-            timeout: Maximum execution time in seconds
-            progress_callback: Optional callback for progress updates
-        """
+    def __init__(self, board_size: int, start_pos: Tuple[int, int] = (0, 0),population_size: int = 100, max_generations: int = 500,timeout: float = 60.0, progress_callback: Optional[Callable] = None):
         self.board_size = board_size
         self.start_pos = start_pos
         self.population_size = population_size
@@ -159,21 +87,9 @@ class CulturalAlgorithmSolver:
         self.timed_out = False
 
     def is_valid_move(self, x: int, y: int) -> bool:
-        """Check if position is within board bounds."""
         return 0 <= x < self.board_size and 0 <= y < self.board_size
 
-    def get_valid_moves(self, pos: Tuple[int, int],
-                       visited: Set[Tuple[int, int]]) -> List[Tuple[int, int]]:
-        """
-        Get all valid unvisited moves from current position.
-
-        Args:
-            pos: Current position
-            visited: Set of visited positions
-
-        Returns:
-            List of valid next positions
-        """
+    def get_valid_moves(self, pos: Tuple[int, int],visited: Set[Tuple[int, int]]) -> List[Tuple[int, int]]:
         x, y = pos
         valid_moves = []
 
@@ -187,17 +103,6 @@ class CulturalAlgorithmSolver:
         return valid_moves
 
     def calculate_fitness(self, individual: Individual) -> float:
-        """
-        Calculate fitness of an individual.
-
-        Fitness = number of unique squares visited + bonus for complete tour.
-
-        Args:
-            individual: Individual to evaluate
-
-        Returns:
-            Fitness score
-        """
         unique_squares = len(individual.visited)
         max_squares = self.board_size ** 2
 
@@ -221,12 +126,6 @@ class CulturalAlgorithmSolver:
         return fitness
 
     def create_individual(self) -> Individual:
-        """
-        Create a new individual using greedy random construction with belief space guidance.
-
-        Returns:
-            New individual
-        """
         individual = Individual(self.board_size, self.start_pos)
         current_pos = self.start_pos
         max_moves = self.board_size ** 2
@@ -253,19 +152,12 @@ class CulturalAlgorithmSolver:
         return individual
 
     def initialize_population(self):
-        """Create initial population."""
         self.population = []
         for _ in range(self.population_size):
             individual = self.create_individual()
             self.population.append(individual)
 
     def select_parents(self) -> Tuple[Individual, Individual]:
-        """
-        Select two parents using tournament selection.
-
-        Returns:
-            Tuple of two parent individuals
-        """
         tournament_size = 5
 
         # Tournament selection for parent 1
@@ -279,16 +171,6 @@ class CulturalAlgorithmSolver:
         return parent1, parent2
 
     def crossover(self, parent1: Individual, parent2: Individual) -> Individual:
-        """
-        Create offspring using path crossover.
-
-        Args:
-            parent1: First parent
-            parent2: Second parent
-
-        Returns:
-            Offspring individual
-        """
         # Take initial portion from parent1
         crossover_point = random.randint(1, min(len(parent1.path), len(parent2.path)) - 1)
 
@@ -324,13 +206,6 @@ class CulturalAlgorithmSolver:
         return child
 
     def mutate(self, individual: Individual, mutation_rate: float = 0.2):
-        """
-        Mutate an individual by rebuilding part of its path.
-
-        Args:
-            individual: Individual to mutate
-            mutation_rate: Probability of mutation
-        """
         if random.random() > mutation_rate or len(individual.path) < 3:
             return
 
@@ -356,7 +231,6 @@ class CulturalAlgorithmSolver:
         individual.fitness = self.calculate_fitness(individual)
 
     def evolve_generation(self):
-        """Evolve population for one generation."""
         new_population = []
 
         # Elitism: keep top 10% of current population
@@ -374,15 +248,6 @@ class CulturalAlgorithmSolver:
         self.population = new_population
 
     def solve(self) -> Tuple[bool, List[Tuple[int, int]], dict]:
-        """
-        Solve Knight's Tour using Cultural Algorithm.
-
-        Returns:
-            Tuple containing:
-                - Success flag
-                - Solution path
-                - Statistics dictionary
-        """
         self.start_time = time.time()
         self.generation_count = 0
         self.timed_out = False
