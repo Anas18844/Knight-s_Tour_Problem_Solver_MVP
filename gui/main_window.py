@@ -197,7 +197,6 @@ class KnightTourGUI:
 
 
     def _on_board_click(self, x, y):
-        """Handle board click to set start position."""
         self.start_position = (x, y)
         self.start_pos_label.config(text=f"({x}, {y})")
 
@@ -484,7 +483,6 @@ class KnightTourGUI:
             print(f"Error saving to database: {e}")
 
     def _stop_solver(self):
-        """Stop the currently running solver."""
         # Note: This is a soft stop - the thread will complete but results will be ignored
         self.is_running = False
         self.run_button.config(state=tk.NORMAL)
@@ -1058,16 +1056,14 @@ Note: Detailed Cultural Algorithm analysis will be enhanced in future versions.
     def _create_comparison_tab(self, parent):
         """Create historical comparison tab."""
         # Title
-        title_label = ttk.Label(parent, text="Historical Comparison Analysis",
-                               font=('Arial', 16, 'bold'))
+        title_label = ttk.Label(parent, text="Historical Comparison Analysis",font=('Arial', 16, 'bold'))
         title_label.pack(pady=10)
 
         # Create treeview for comparison
         tree_frame = ttk.Frame(parent)
         tree_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
 
-        tree = ttk.Treeview(tree_frame, columns=('Run', 'Algorithm', 'Level', 'Board', 'Time', 'Calls', 'Status'),
-                          show='headings', height=15)
+        tree = ttk.Treeview(tree_frame, columns=('Run', 'Algorithm', 'Level', 'Board', 'Time', 'Calls', 'Status'),show='headings', height=15)
 
         tree.heading('Run', text='Run #')
         tree.heading('Algorithm', text='Algorithm')
@@ -1139,8 +1135,7 @@ Average Execution Times by Algorithm:
     def _create_details_tab(self, parent):
         """Create algorithm details tab."""
         # Title
-        title_label = ttk.Label(parent, text="Algorithm Implementation Details",
-                               font=('Arial', 16, 'bold'))
+        title_label = ttk.Label(parent, text="Algorithm Implementation Details",font=('Arial', 16, 'bold'))
         title_label.pack(pady=10)
 
         # Create text widget with scrollbar
