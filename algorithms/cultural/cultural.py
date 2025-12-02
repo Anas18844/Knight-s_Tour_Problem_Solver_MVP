@@ -479,6 +479,7 @@ class CulturalAlgorithmSolver:
             'best_fitness': self.best_solution.fitness,
             'solution_length': len(self.best_solution.path),
             'coverage': len(set(self.best_solution.path)),
+            'population_size': self.population_size,
             'timed_out': self.timed_out,
             'algorithm': 'Cultural Algorithm'
         }

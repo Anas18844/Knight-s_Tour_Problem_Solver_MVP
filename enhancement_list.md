@@ -1,6 +1,6 @@
 # Updates in Cultural Algorithm
 
-    - Fix the Level4 Arch to solve the complete solution 
+    - Fix the Level4 Arch to solve the complete solution (solve)
     - add a generation number and fitness measure in the progress bar like level4
     - add a time complixty measure with resources measure in dashboard
     - find the reason of errors that appear in cultural algorithm codebase
@@ -21,3 +21,4 @@
     - Depth pf recursion
     - number of backtracking in backtracking Algorithm
     - Explain threading
+    

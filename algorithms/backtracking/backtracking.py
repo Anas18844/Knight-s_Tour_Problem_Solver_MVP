@@ -83,10 +83,13 @@ class BacktrackingSolver(EnhancedBacktracking):
         success = self._backtrack(start_x, start_y, 0)
         execution_time = time.time() - self.start_time
 
+        final_path = self.path.copy() if self.path else self.solution_path.copy()
+
         stats = {
             'execution_time': execution_time,
             'recursive_calls': self.recursive_calls,
-            'solution_length': len(self.solution_path),
+            'backtrack_count': self.backtrack_count,
+            'solution_length': len(final_path),
             'timed_out': self.timed_out,
             'algorithm': 'Backtracking with Warnsdorff\'s Heuristic'
         }
@@ -94,5 +97,5 @@ class BacktrackingSolver(EnhancedBacktracking):
         if self.timed_out:
             stats['error'] = f'Timeout after {self.timeout} seconds'
 
-        return success, self.solution_path.copy(), stats
+        return success, final_path, stats
 

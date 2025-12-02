@@ -354,6 +354,7 @@ class KnightTourGUI:
                     'execution_time': (end_time - start_time).total_seconds(),
                     'recursive_calls': solver.recursive_calls,
                     'backtrack_count': solver.backtrack_count,
+                    'solution_length': len(path),
                     'coverage_percent': 100 * len(path) / (board_size * board_size) if board_size > 0 else 0
                 }
 
@@ -370,6 +371,7 @@ class KnightTourGUI:
                     'execution_time': (end_time - start_time).total_seconds(),
                     'recursive_calls': solver.recursive_calls,
                     'backtrack_count': solver.backtrack_count,
+                    'solution_length': len(path),
                     'coverage_percent': 100 * len(path) / (board_size * board_size) if board_size > 0 else 0
                 }
 
@@ -405,7 +407,12 @@ class KnightTourGUI:
                 if message[0] == 'progress':
                     _, percent, text = message
                     self.progress_bar['value'] = percent
-                    self.status_label.config(text=text, foreground="blue")
+
+                    # Enhanced display for Cultural Algorithm with generation and fitness
+                    if "Generation" in text and "fitness" in text.lower():
+                        self.status_label.config(text=f"🧬 {text}", foreground="blue")
+                    else:
+                        self.status_label.config(text=text, foreground="blue")
 
                 elif message[0] == 'complete':
                     _, success, path, stats, start_time, end_time = message
@@ -706,6 +713,9 @@ Success:             {'YES' if len(self.current_solution) == self.board_size.get
 
         if 'recursive_calls' in self.current_stats:
             info_content += f"Recursive Calls:     {self.current_stats['recursive_calls']:,}\n"
+            if 'backtrack_count' in self.current_stats:
+                info_content += f"Backtrack Count:     {self.current_stats['backtrack_count']:,}\n"
+                info_content += f"Success Rate:        {((self.current_stats['recursive_calls'] - self.current_stats['backtrack_count']) / max(1, self.current_stats['recursive_calls']) * 100):.2f}%\n"
             info_content += f"Avg Time/Call:       {self.current_stats.get('execution_time', 0) / max(1, self.current_stats['recursive_calls']) * 1000:.6f} ms\n"
 
         if 'generations' in self.current_stats:
@@ -742,11 +752,46 @@ Moves per Second:    {1/time_per_move if time_per_move > 0 else 0:.2f}
 
 """
 
+        # Complexity Analysis
+        algorithm_name = self.current_stats.get('algorithm', '')
+        n = self.board_size.get()
+
+        perf_content += "\nComplexity Analysis:\n"
+        perf_content += "─" * 66 + "\n"
+
+        if 'Backtracking' in algorithm_name:
+            perf_content += f"  Time Complexity:   O({n}^({n}²)) worst case, O({n}²) best case\n"
+            perf_content += f"  Space Complexity:  O({n}²) for board + O({n}²) recursion stack\n"
+            perf_content += f"  Memory Usage:      ~{n*n*8 + n*n*8} bytes ({(n*n*8 + n*n*8)/1024:.2f} KB)\n"
+
+        elif 'Cultural Algorithm' in algorithm_name:
+            pop_size = self.current_stats.get('population_size', 100)
+            gens = self.current_stats.get('generations', 0)
+            perf_content += f"  Time Complexity:   O(G × P × {n}²) where G={gens}, P={pop_size}\n"
+            perf_content += f"  Space Complexity:  O(P × {n}²) for population + O({n}²) belief space\n"
+            perf_content += f"  Memory Usage:      ~{pop_size * n * n * 8 + n*n*8} bytes ({(pop_size * n * n * 8 + n*n*8)/1024:.2f} KB)\n"
+            perf_content += f"  Generations Run:   {gens}\n"
+            perf_content += f"  Population Size:   {pop_size}\n"
+
+        elif 'Random' in algorithm_name:
+            perf_content += f"  Time Complexity:   O({n}²) per attempt\n"
+            perf_content += f"  Space Complexity:  O({n}²) for path storage\n"
+            perf_content += f"  Memory Usage:      ~{n*n*8} bytes ({(n*n*8)/1024:.2f} KB)\n"
+
+        perf_content += "\n"
+
         if 'recursive_calls' in self.current_stats:
             efficiency = (self.current_stats.get('solution_length', 0) / max(1, self.current_stats['recursive_calls'])) * 100
+            backtrack_info = ""
+            if 'backtrack_count' in self.current_stats:
+                backtrack_info = f"""
+  Backtrack Count:   {self.current_stats['backtrack_count']:,}
+  Forward Moves:     {self.current_stats['recursive_calls'] - self.current_stats['backtrack_count']:,}
+  Success Rate:      {((self.current_stats['recursive_calls'] - self.current_stats['backtrack_count']) / max(1, self.current_stats['recursive_calls']) * 100):.2f}%
+"""
             perf_content += f"""
 Backtracking Efficiency:
-  Total Calls:       {self.current_stats['recursive_calls']:,}
+  Total Recursive Calls: {self.current_stats['recursive_calls']:,}{backtrack_info}
   Successful Moves:  {self.current_stats.get('solution_length', 0)}
   Efficiency Ratio:  {efficiency:.2f}%
   Backtrack Rate:    {100-efficiency:.2f}%
