@@ -1,5 +1,5 @@
 # Knight's Tour Problem Solver - Requirements
-# Python 3.8+
+# Python 3.11
 -----
 # Core dependencies
 # matplotlib>=3.5.0

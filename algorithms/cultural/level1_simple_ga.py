@@ -10,13 +10,13 @@ class SimpleGASolver(BaseSolver):
     def __init__(self, n: int, level: int = 1):
         super().__init__(n=n, level=level)
         self.population_size = 30
-        self.generations = 100
+        self.generations = 100 # 1 -> 2 -> ... -> 100 
         self.mutation_rate = 0.3
         self.chromosome_length = n * n
         self.elitism_count = 2
         self.tournament_size = 3
         self.best_fitness = 0
-        self.best_path = []
+        self.best_path = [] # Best path -> Best chromosome
         self.generation_best_fitness = []
         self.generation_avg_fitness = []
         self.mutation_count = 0
@@ -27,7 +27,7 @@ class SimpleGASolver(BaseSolver):
         for _ in range(self.population_size):
             chromosome = [random.randint(0, 7) for _ in range(self.chromosome_length)]
             population.append(chromosome)
-        return population
+        return population 
 
     def decode(self, chromosome: List[int], start_pos: Tuple[int, int]) -> List[Tuple[int, int]]:
         path = [start_pos]

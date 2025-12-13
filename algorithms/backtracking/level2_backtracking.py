@@ -45,7 +45,9 @@ class PureBacktracking(OrderedKnightWalk):
 # عادي جدا هعمل backtrack و ارجع القيم تاني -1 بتاعت الرقعات الي انا مشيت عليها و انا بجرب
 # و اشيل النقاط الي انا مشيت عليها من ال path
 # وازود ال backtrack counter بواحد
-        self.backtrack_count += 1
-        self.board[x][y] = -1
-        self.path.pop()
+
+# ده ال stack يا اخونااااا
+        self.backtrack_count += 1 #return back
+        self.board[x][y] = -1 # unvisited
+        self.path.pop() 
         return False

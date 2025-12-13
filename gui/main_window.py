@@ -28,8 +28,8 @@ class KnightTourGUI:
         self.board_size = tk.IntVar(value=8)
         self.animation_speed = tk.IntVar(value=200)
         self.start_position = (0, 0)
-        self.current_solution = None
-        self.current_stats = None
+        self.current_solution = None #Algorithm
+        self.current_stats = None #In Progress , Complete , not solved
         self.is_running = False
 
         # Threading
@@ -227,9 +227,9 @@ class KnightTourGUI:
 
     def _solve_in_thread(self):
         try:
-            algorithm = self.current_algorithm.get()
-            board_size = self.board_size.get()
-            start_pos = self.start_position
+            algorithm = self.current_algorithm.get() # CA , BT
+            board_size = self.board_size.get() # 5*5 -> 12*12
+            start_pos = self.start_position #(2,3)
 
             # Get level from dropdown
             level_str = self.algorithm_level.get()  # e.g., "Level 0", "Level 1"
@@ -422,11 +422,11 @@ class KnightTourGUI:
                     _, error_msg = message
                     self._handle_error(error_msg)
 
-        except queue.Empty:
+        except queue.Empty: #if no message found
             pass
 
         # Schedule next check
-        self.root.after(100, self._monitor_progress)
+        self.root.after(100, self._monitor_progress) #consumer -> which listen every 100 ms && call the _monitor_progress
 
     def _handle_solution(self, success, path, stats, start_time, end_time):
         self.is_running = False
@@ -444,7 +444,7 @@ class KnightTourGUI:
             self._save_to_database(success, path, stats, start_time)
 
             # Start animation
-            self.board_canvas.start_animation(path, speed=200)
+            self.board_canvas.start_animation(path, speed=200) #200 ms
 
         else:
             # Calculate coverage percentage
@@ -473,7 +473,7 @@ class KnightTourGUI:
         messagebox.showerror("Solver Error", f"An error occurred:\n{error_msg}")
 
 
-    def _save_to_database(self, success, path, stats, start_time):
+    def _save_to_database(self, success, path, stats):
         try:
             run_id = self.db_manager.insert_run(
                 algorithm=stats.get('algorithm', 'Unknown'),
@@ -599,8 +599,7 @@ class KnightTourGUI:
                 ))
 
             # Statistics button
-            ttk.Button(popup, text="Show Statistics",
-                      command=lambda: self._show_database_stats()).pack(pady=10)
+            ttk.Button(popup, text="Show Statistics",command=lambda: self._show_database_stats()).pack(pady=10)
 
         except Exception as e:
             messagebox.showerror("History Error", f"Failed to load history:\n{e}")

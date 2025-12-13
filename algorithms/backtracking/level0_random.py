@@ -29,7 +29,7 @@ class RandomKnightWalk:
         return self.board[x][y] == -1
 # ترجع لك قائمة الحركات الصالحة من المربع الحالي (داخل البورد ومش مزارة).
     def get_valid_moves(self, x: int, y: int) -> List[Tuple[int, int]]:
-        valid_moves = []
+        valid_moves = [] #8 to 1 -> if 0 "dead end"
         for dx, dy in self.KNIGHT_MOVES:
             next_x, next_y = x + dx, y + dy
             if self.is_valid_position(next_x, next_y) and self.is_unvisited(next_x, next_y):
