@@ -1036,9 +1036,9 @@ Note: Detailed Cultural Algorithm analysis will be enhanced in future versions.
         # Chart 2: Performance Metrics Bar Chart
         metrics_labels = ['Execution\nTime (s)', 'Solution\nLength', 'Recursive\nCalls (÷1000)']
         metrics_values = [
-            self.current_stats.get('execution_time', 0),
-            self.current_stats.get('solution_length', 0),
-            self.current_stats.get('recursive_calls', 0) / 1000
+            self.current_stats.get('execution_time', 0),  # type: ignore
+            self.current_stats.get('solution_length', 0), # type: ignore
+            self.current_stats.get('recursive_calls', 0) / 1000 # type: ignore
         ]
         colors = ['#3498db', '#2ecc71', '#e74c3c']
         ax2.bar(metrics_labels, metrics_values, color=colors, alpha=0.7, edgecolor='black')
@@ -1049,7 +1049,7 @@ Note: Detailed Cultural Algorithm analysis will be enhanced in future versions.
         # Chart 3: Historical Performance Trend
         try:
             all_runs = self.db_manager.get_all_runs()
-            same_algo_runs = [r for r in all_runs if r['algorithm'] == self.current_stats.get('algorithm', '')]
+            same_algo_runs = [r for r in all_runs if r['algorithm'] == self.current_stats.get('algorithm', '')] # type: ignore
 
             if len(same_algo_runs) > 1:
                 runs_sorted = sorted(same_algo_runs, key=lambda r: r['id'])
@@ -1058,7 +1058,7 @@ Note: Detailed Cultural Algorithm analysis will be enhanced in future versions.
 
                 ax3.plot(run_numbers, times, marker='o', linewidth=2, markersize=6, color='#9b59b6')
                 ax3.axhline(y=np.mean(times), color='r', linestyle='--', label=f'Average: {np.mean(times):.4f}s')
-                ax3.set_title(f'Performance Trend - {self.current_stats.get("algorithm", "N/A")}')
+                ax3.set_title(f'Performance Trend - {self.current_stats.get("algorithm", "N/A")}') # type: ignore
                 ax3.set_xlabel('Run Number')
                 ax3.set_ylabel('Execution Time (s)')
                 ax3.legend()
