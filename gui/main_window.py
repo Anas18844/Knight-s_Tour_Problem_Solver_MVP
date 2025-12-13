@@ -2,7 +2,7 @@ import tkinter as tk
 from tkinter import ttk, messagebox, scrolledtext
 import threading
 import queue
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Dict, List, Any
 import json
 from datetime import datetime
 
@@ -28,8 +28,8 @@ class KnightTourGUI:
         self.board_size = tk.IntVar(value=8)
         self.animation_speed = tk.IntVar(value=200)
         self.start_position = (0, 0)
-        self.current_solution = None #Algorithm
-        self.current_stats = None #In Progress , Complete , not solved
+        self.current_solution: Optional[List[Tuple[int, int]]] = None
+        self.current_stats: Optional[Dict[str, Any]] = None
         self.is_running = False
 
         # Threading
@@ -45,17 +45,17 @@ class KnightTourGUI:
     def _create_ui(self):
         # Main container
         main_container = ttk.Frame(self.root, padding="10")
-        main_container.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+        main_container.grid(row=0, column=0, sticky="nsew")
         self.root.columnconfigure(0, weight=1)
         self.root.rowconfigure(0, weight=1)
 
         # Left panel - Controls
         left_panel = ttk.Frame(main_container, padding="5")
-        left_panel.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S), padx=5)
+        left_panel.grid(row=0, column=0, sticky="nsew", padx=5)
 
         # Right panel - Board and results
         right_panel = ttk.Frame(main_container, padding="5")
-        right_panel.grid(row=0, column=1, sticky=(tk.W, tk.E, tk.N, tk.S), padx=5)
+        right_panel.grid(row=0, column=1, sticky="nsew", padx=5)
 
         main_container.columnconfigure(1, weight=1)
         main_container.rowconfigure(0, weight=1)
@@ -72,54 +72,54 @@ class KnightTourGUI:
 
         # Board size input
         ttk.Label(parent, text="Board Size (5-12):", font=('Arial', 10, 'bold')).grid(
-            row=row, column=0, sticky=tk.W, pady=5)
+            row=row, column=0, sticky="w", pady=5)
         board_size_spinbox = ttk.Spinbox(parent, from_=5, to=12, textvariable=self.board_size,width=10, command=self._on_board_size_change)
-        board_size_spinbox.grid(row=row, column=1, sticky=tk.W, pady=5)
+        board_size_spinbox.grid(row=row, column=1, sticky="w", pady=5)
         row += 1
 
         # Algorithm selection
         ttk.Label(parent, text="Algorithm:", font=('Arial', 10, 'bold')).grid(
-            row=row, column=0, sticky=tk.W, pady=5)
+            row=row, column=0, sticky="w", pady=5)
         algo_combo = ttk.Combobox(parent, textvariable=self.current_algorithm,values=["Backtracking", "Cultural Algorithm"],state="readonly", width=20)
-        algo_combo.grid(row=row, column=1, sticky=tk.W, pady=5)
+        algo_combo.grid(row=row, column=1, sticky="w", pady=5)
         row += 1
 
         # Algorithm Level selection
         ttk.Label(parent, text="Level:", font=('Arial', 10, 'bold')).grid(
-            row=row, column=0, sticky=tk.W, pady=5)
+            row=row, column=0, sticky="w", pady=5)
         level_combo = ttk.Combobox(parent, textvariable=self.algorithm_level,values=["Level 0", "Level 1", "Level 2", "Level 3", "Level 4"],state="readonly", width=20)
-        level_combo.grid(row=row, column=1, sticky=tk.W, pady=5)
+        level_combo.grid(row=row, column=1, sticky="w", pady=5)
         row += 1
 
         # Separator
         ttk.Separator(parent, orient=tk.HORIZONTAL).grid(
-            row=row, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=10)
+            row=row, column=0, columnspan=2, sticky="ew", pady=10)
         row += 1
 
         # DASHBOARD BUTTON - Prominent placement
         dashboard_button = ttk.Button(parent, text="OPEN DASHBOARD",command=self._show_dashboard)
-        dashboard_button.grid(row=row, column=0, columnspan=2, sticky=(tk.W, tk.E),padx=10, pady=10, ipady=10)
+        dashboard_button.grid(row=row, column=0, columnspan=2, sticky="ew",padx=10, pady=10, ipady=10)
         row += 1
 
         # Separator
         ttk.Separator(parent, orient=tk.HORIZONTAL).grid(
-            row=row, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=10)
+            row=row, column=0, columnspan=2, sticky="ew", pady=10)
         row += 1
 
         # Start position display
         ttk.Label(parent, text="Start Position:", font=('Arial', 10, 'bold')).grid(
-            row=row, column=0, sticky=tk.W, pady=5)
+            row=row, column=0, sticky="w", pady=5)
         self.start_pos_label = ttk.Label(parent, text="(0, 0)", foreground="blue")
-        self.start_pos_label.grid(row=row, column=1, sticky=tk.W, pady=5)
+        self.start_pos_label.grid(row=row, column=1, sticky="w", pady=5)
         row += 1
 
         ttk.Label(parent, text="(Click board to change)", font=('Arial', 8, 'italic')).grid(
-            row=row, column=0, columnspan=2, sticky=tk.W, pady=2)
+            row=row, column=0, columnspan=2, sticky="w", pady=2)
         row += 1
 
         # Separator
         ttk.Separator(parent, orient=tk.HORIZONTAL).grid(
-            row=row, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=10)
+            row=row, column=0, columnspan=2, sticky="ew", pady=10)
         row += 1
 
         # Action buttons
@@ -141,20 +141,20 @@ class KnightTourGUI:
 
         # Progress bar
         ttk.Label(parent, text="Progress:", font=('Arial', 10, 'bold')).grid(
-            row=row, column=0, sticky=tk.W, pady=5)
+            row=row, column=0, sticky="w", pady=5)
         row += 1
 
         self.progress_bar = ttk.Progressbar(parent, mode='determinate', length=250)
-        self.progress_bar.grid(row=row, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=5)
+        self.progress_bar.grid(row=row, column=0, columnspan=2, sticky="ew", pady=5)
         row += 1
 
         self.status_label = ttk.Label(parent, text="Ready", foreground="green")
-        self.status_label.grid(row=row, column=0, columnspan=2, sticky=tk.W, pady=5)
+        self.status_label.grid(row=row, column=0, columnspan=2, sticky="w", pady=5)
         row += 1
 
         # Separator
         ttk.Separator(parent, orient=tk.HORIZONTAL).grid(
-            row=row, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=10)
+            row=row, column=0, columnspan=2, sticky="ew", pady=10)
         row += 1
 
         # Action buttons
@@ -174,7 +174,7 @@ class KnightTourGUI:
 
         # Board canvas container
         canvas_frame = ttk.Frame(parent, relief=tk.RAISED, borderwidth=2)
-        canvas_frame.grid(row=1, column=0, sticky=(tk.W, tk.E, tk.N, tk.S), pady=10)
+        canvas_frame.grid(row=1, column=0, sticky="nsew", pady=10)
 
         # Create board canvas
         self.board_canvas = BoardCanvas(canvas_frame, board_size=self.board_size.get(),cell_size=60)
@@ -218,7 +218,8 @@ class KnightTourGUI:
         self.is_running = True
         self.run_button.config(state=tk.DISABLED)
         self.stop_button.config(state=tk.NORMAL)
-        self.status_label.config(text="Running...", foreground="blue")
+        self.skip_anim_button.config(state=tk.DISABLED)
+        self.status_label.config(text="Initializing solver...", foreground="blue")
         self.progress_bar['value'] = 0
 
         # Start solver in separate thread
@@ -473,7 +474,7 @@ class KnightTourGUI:
         messagebox.showerror("Solver Error", f"An error occurred:\n{error_msg}")
 
 
-    def _save_to_database(self, success, path, stats):
+    def _save_to_database(self, success, path, stats, start_time):
         try:
             run_id = self.db_manager.insert_run(
                 algorithm=stats.get('algorithm', 'Unknown'),
@@ -690,69 +691,72 @@ class KnightTourGUI:
 
         # Current Run Information
         info_frame = ttk.LabelFrame(scrollable_frame, text="Current Run Information", padding="10")
-        info_frame.grid(row=row, column=0, columnspan=2, sticky=(tk.W, tk.E), padx=10, pady=10)
+        info_frame.grid(row=row, column=0, columnspan=2, sticky="ew", padx=10, pady=10)
         row += 1
 
         info_text = tk.Text(info_frame, width=80, height=12, font=('Courier', 10))
-        info_text.grid(row=0, column=0, sticky=(tk.W, tk.E))
+        info_text.grid(row=0, column=0, sticky="ew")
+
+        # Safe access to stats
+        stats = self.current_stats or {}
 
         info_content = f"""
 ╔══════════════════════════════════════════════════════════════════╗
 ║                    CURRENT RUN METRICS                           ║
 ╚══════════════════════════════════════════════════════════════════╝
 
-Algorithm:           {self.current_stats.get('algorithm', 'N/A')}
+Algorithm:           {stats.get('algorithm', 'N/A')}
 Level:               {self.algorithm_level.get()}
 Board Size:          {self.board_size.get()}×{self.board_size.get()}
 Start Position:      {self.start_position}
-Execution Time:      {self.current_stats.get('execution_time', 0):.4f} seconds
-Solution Length:     {self.current_stats.get('solution_length', 0)} moves
-Success:             {'YES' if len(self.current_solution) == self.board_size.get()**2 else 'NO'}
+Execution Time:      {stats.get('execution_time', 0):.4f} seconds
+Solution Length:     {stats.get('solution_length', 0)} moves
+Success:             {'YES' if self.current_solution and len(self.current_solution) == self.board_size.get()**2 else 'NO'}
 """
 
-        if 'recursive_calls' in self.current_stats:
-            info_content += f"Recursive Calls:     {self.current_stats['recursive_calls']:,}\n"
-            if 'backtrack_count' in self.current_stats:
-                info_content += f"Backtrack Count:     {self.current_stats['backtrack_count']:,}\n"
-                info_content += f"Success Rate:        {((self.current_stats['recursive_calls'] - self.current_stats['backtrack_count']) / max(1, self.current_stats['recursive_calls']) * 100):.2f}%\n"
-            info_content += f"Avg Time/Call:       {self.current_stats.get('execution_time', 0) / max(1, self.current_stats['recursive_calls']) * 1000:.6f} ms\n"
+        if 'recursive_calls' in stats:
+            info_content += f"Recursive Calls:     {stats['recursive_calls']:,}\n"
+            if 'backtrack_count' in stats:
+                info_content += f"Backtrack Count:     {stats['backtrack_count']:,}\n"
+                info_content += f"Success Rate:        {((stats['recursive_calls'] - stats['backtrack_count']) / max(1, stats['recursive_calls']) * 100):.2f}%\n"
+            info_content += f"Avg Time/Call:       {stats.get('execution_time', 0) / max(1, stats['recursive_calls']) * 1000:.6f} ms\n"
 
-        if 'generations' in self.current_stats:
-            info_content += f"Generations:         {self.current_stats['generations']}\n"
-            info_content += f"Best Fitness:        {self.current_stats.get('best_fitness', 0)}\n"
+        if 'generations' in stats:
+            info_content += f"Generations:         {stats['generations']}\n"
+            info_content += f"Best Fitness:        {stats.get('best_fitness', 0)}\n"
 
-        if self.current_stats.get('timed_out'):
-            info_content += f"\n⚠ WARNING: Timeout occurred after {self.current_stats.get('timeout', 60)} seconds\n"
+        if stats.get('timed_out'):
+            info_content += f"\n⚠ WARNING: Timeout occurred after {stats.get('timeout', 60)} seconds\n"
 
         info_text.insert('1.0', info_content)
         info_text.config(state=tk.DISABLED)
 
         # Performance Analysis
         perf_frame = ttk.LabelFrame(scrollable_frame, text="Performance Analysis", padding="10")
-        perf_frame.grid(row=row, column=0, columnspan=2, sticky=(tk.W, tk.E), padx=10, pady=10)
+        perf_frame.grid(row=row, column=0, columnspan=2, sticky="ew", padx=10, pady=10)
         row += 1
 
         perf_text = tk.Text(perf_frame, width=80, height=15, font=('Courier', 10))
-        perf_text.grid(row=0, column=0, sticky=(tk.W, tk.E))
+        perf_text.grid(row=0, column=0, sticky="ew")
 
         # Calculate additional metrics
         board_cells = self.board_size.get() ** 2
-        coverage = (self.current_stats.get('solution_length', 0) / board_cells) * 100
-        time_per_move = self.current_stats.get('execution_time', 0) / max(1, self.current_stats.get('solution_length', 1))
+        coverage = (stats.get('solution_length', 0) / board_cells) * 100
+        time_per_move = stats.get('execution_time', 0) / max(1, stats.get('solution_length', 1))
 
         perf_content = f"""
 ╔══════════════════════════════════════════════════════════════════╗
 ║                    PERFORMANCE BREAKDOWN                         ║
 ╚══════════════════════════════════════════════════════════════════╝
 
-Board Coverage:      {coverage:.2f}% ({self.current_stats.get('solution_length', 0)}/{board_cells} cells)
+Board Coverage:      {coverage:.2f}% ({stats.get('solution_length', 0)}/{board_cells} cells)
 Time per Move:       {time_per_move:.6f} seconds
 Moves per Second:    {1/time_per_move if time_per_move > 0 else 0:.2f}
 
 """
 
         # Complexity Analysis
-        algorithm_name = self.current_stats.get('algorithm', '')
+        algorithm_name = stats.get('algorithm', '')
         n = self.board_size.get()
 
         perf_content += "\nComplexity Analysis:\n"
@@ -764,8 +768,8 @@ Moves per Second:    {1/time_per_move if time_per_move > 0 else 0:.2f}
             perf_content += f"  Memory Usage:      ~{n*n*8 + n*n*8} bytes ({(n*n*8 + n*n*8)/1024:.2f} KB)\n"
 
         elif 'Cultural Algorithm' in algorithm_name:
-            pop_size = self.current_stats.get('population_size', 100)
-            gens = self.current_stats.get('generations', 0)
+            pop_size = stats.get('population_size', 100)
+            gens = stats.get('generations', 0)
             perf_content += f"  Time Complexity:   O(G × P × {n}²) where G={gens}, P={pop_size}\n"
             perf_content += f"  Space Complexity:  O(P × {n}²) for population + O({n}²) belief space\n"
             perf_content += f"  Memory Usage:      ~{pop_size * n * n * 8 + n*n*8} bytes ({(pop_size * n * n * 8 + n*n*8)/1024:.2f} KB)\n"
@@ -779,32 +783,32 @@ Moves per Second:    {1/time_per_move if time_per_move > 0 else 0:.2f}
 
         perf_content += "\n"
 
-        if 'recursive_calls' in self.current_stats:
-            efficiency = (self.current_stats.get('solution_length', 0) / max(1, self.current_stats['recursive_calls'])) * 100
+        if 'recursive_calls' in stats:
+            efficiency = (stats.get('solution_length', 0) / max(1, stats['recursive_calls'])) * 100
             backtrack_info = ""
-            if 'backtrack_count' in self.current_stats:
+            if 'backtrack_count' in stats:
                 backtrack_info = f"""
-  Backtrack Count:   {self.current_stats['backtrack_count']:,}
-  Forward Moves:     {self.current_stats['recursive_calls'] - self.current_stats['backtrack_count']:,}
-  Success Rate:      {((self.current_stats['recursive_calls'] - self.current_stats['backtrack_count']) / max(1, self.current_stats['recursive_calls']) * 100):.2f}%
+  Backtrack Count:   {stats['backtrack_count']:,}
+  Forward Moves:     {stats['recursive_calls'] - stats['backtrack_count']:,}
+  Success Rate:      {((stats['recursive_calls'] - stats['backtrack_count']) / max(1, stats['recursive_calls']) * 100):.2f}%
 """
             perf_content += f"""
 Backtracking Efficiency:
-  Total Recursive Calls: {self.current_stats['recursive_calls']:,}{backtrack_info}
-  Successful Moves:  {self.current_stats.get('solution_length', 0)}
+  Total Recursive Calls: {stats['recursive_calls']:,}{backtrack_info}
+  Successful Moves:  {stats.get('solution_length', 0)}
   Efficiency Ratio:  {efficiency:.2f}%
   Backtrack Rate:    {100-efficiency:.2f}%
 
 Search Space Analysis:
   Theoretical Max:   {8 ** board_cells:,} (8 moves per cell)
-  Actual Explored:   {self.current_stats['recursive_calls']:,}
-  Reduction:         {(1 - self.current_stats['recursive_calls'] / (8 ** board_cells)) * 100:.10f}%
+  Actual Explored:   {stats['recursive_calls']:,}
+  Reduction:         {(1 - stats['recursive_calls'] / (8 ** board_cells)) * 100:.10f}%
 """
 
         # Get historical data for comparison
         try:
             all_runs = self.db_manager.get_all_runs()
-            same_algo_runs = [r for r in all_runs if r['algorithm'] == self.current_stats.get('algorithm', '')
+            same_algo_runs = [r for r in all_runs if r['algorithm'] == stats.get('algorithm', '')
                              and r['board_size'] == self.board_size.get() and r['result'] == 'SUCCESS']
 
             if same_algo_runs:
@@ -813,8 +817,8 @@ Search Space Analysis:
 Historical Comparison (Same Algorithm & Board Size):
   Total Runs:        {len(same_algo_runs)}
   Average Time:      {avg_time:.4f} seconds
-  Current vs Avg:    {((self.current_stats.get('execution_time', 0) - avg_time) / avg_time * 100):+.2f}%
-  Rank:              {sorted([r['execution_time'] for r in same_algo_runs]).index(self.current_stats.get('execution_time', 0)) + 1}/{len(same_algo_runs)}
+  Current vs Avg:    {((stats.get('execution_time', 0) - avg_time) / avg_time * 100):+.2f}%
+  Rank:              {sorted([r['execution_time'] for r in same_algo_runs]).index(stats.get('execution_time', 0)) + 1}/{len(same_algo_runs)}
 """
         except:
             pass
@@ -833,11 +837,11 @@ Historical Comparison (Same Algorithm & Board Size):
         title_label.pack(pady=10)
 
         # Create scrolled text for simple display
-        import tkinter.scrolledtext as scrolledtext
         analysis_text = scrolledtext.ScrolledText(parent, width=100, height=40, font=('Courier', 10))
         analysis_text.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
 
-        algo_name = self.current_stats.get('algorithm', 'Unknown')
+        stats = self.current_stats or {}
+        algo_name = stats.get('algorithm', 'Unknown')
 
         # Generate analysis content
         if 'Backtracking' in algo_name:
@@ -852,11 +856,12 @@ Historical Comparison (Same Algorithm & Board Size):
 
     def _generate_backtracking_analysis(self):
         """Generate Backtracking analysis content."""
-        total_calls = self.current_stats.get('recursive_calls', 0)
-        solution_length = self.current_stats.get('solution_length', 0)
+        stats = self.current_stats or {}
+        total_calls = stats.get('recursive_calls', 0)
+        solution_length = stats.get('solution_length', 0)
         board_size = self.board_size.get()
         total_cells = board_size ** 2
-        execution_time = self.current_stats.get('execution_time', 0)
+        execution_time = stats.get('execution_time', 0)
 
         # Calculate metrics
         theoretical_calls = min(8 ** total_cells, 10**20)  # Cap for display
@@ -872,7 +877,7 @@ Historical Comparison (Same Algorithm & Board Size):
 ║                    DETAILED ALGORITHM ANALYSIS                               ║
 ╚══════════════════════════════════════════════════════════════════════════════╝
 
-ALGORITHM: {self.current_stats.get('algorithm', 'N/A')}
+ALGORITHM: {stats.get('algorithm', 'N/A')}
 LEVEL: {self.algorithm_level.get()}
 BOARD SIZE: {board_size}×{board_size}
 
@@ -976,9 +981,10 @@ Execution Metrics:
 
     def _generate_cultural_analysis(self):
         """Generate Cultural Algorithm analysis content."""
-        generations = self.current_stats.get('generations', 0)
-        best_fitness = self.current_stats.get('best_fitness', 0)
-        execution_time = self.current_stats.get('execution_time', 0)
+        stats = self.current_stats or {}
+        generations = stats.get('generations', 0)
+        best_fitness = stats.get('best_fitness', 0)
+        execution_time = stats.get('execution_time', 0)
 
         content = f"""
 ╔══════════════════════════════════════════════════════════════════════════════╗
@@ -998,7 +1004,7 @@ Population Dynamics:
 
 Performance:
   Solution Quality:          {best_fitness} moves
-  Board Coverage:            {(self.current_stats.get('solution_length', 0)/self.board_size.get()**2)*100:.1f}%
+  Board Coverage:            {(stats.get('solution_length', 0)/self.board_size.get()**2)*100:.1f}%
 
 Note: Detailed Cultural Algorithm analysis will be enhanced in future versions.
 """
@@ -1189,7 +1195,8 @@ Average Execution Times by Algorithm:
         text_widget = scrolledtext.ScrolledText(text_frame, width=100, height=35, font=('Courier', 10))
         text_widget.pack(fill=tk.BOTH, expand=True)
 
-        algo_name = self.current_stats.get('algorithm', 'Unknown')
+        stats = self.current_stats or {}
+        algo_name = stats.get('algorithm', 'Unknown')
 
         details_content = f"""
 ╔══════════════════════════════════════════════════════════════════════════════╗
@@ -1263,9 +1270,9 @@ Performance Characteristics:
 Current Run Statistics:
   Board Size:        {self.board_size.get()}×{self.board_size.get()}
   Total Cells:       {self.board_size.get()**2}
-  Recursive Calls:   {self.current_stats.get('recursive_calls', 'N/A'):,}
-  Execution Time:    {self.current_stats.get('execution_time', 0):.4f}s
-  Success:           {'YES' if self.current_stats.get('solution_length', 0) == self.board_size.get()**2 else 'NO'}
+  Recursive Calls:   {stats.get('recursive_calls', 'N/A'):,}
+  Execution Time:    {stats.get('execution_time', 0):.4f}s
+  Success:           {'YES' if stats.get('solution_length', 0) == self.board_size.get()**2 else 'NO'}
 """
         elif 'Cultural' in algo_name:
             details_content += """
@@ -1296,9 +1303,9 @@ Key Features:
   • Adaptive search strategies
 
 Current Run Statistics:
-  Generations:       {self.current_stats.get('generations', 'N/A')}
-  Best Fitness:      {self.current_stats.get('best_fitness', 'N/A')}
-  Execution Time:    {self.current_stats.get('execution_time', 0):.4f}s
+  Generations:       {stats.get('generations', 'N/A')}
+  Best Fitness:      {stats.get('best_fitness', 'N/A')}
+  Execution Time:    {stats.get('execution_time', 0):.4f}s
 """
 
         text_widget.insert('1.0', details_content)
