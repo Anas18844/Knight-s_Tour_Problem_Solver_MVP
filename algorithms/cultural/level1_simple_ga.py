@@ -21,7 +21,6 @@ class SimpleGASolver(BaseSolver):
         self.mutation_count = 0
         self.crossover_count = 0
 
-
     def initialize_population(self) -> List[List[int]]:
         population = []
         for _ in range(self.population_size):
@@ -157,8 +156,6 @@ class SimpleGASolver(BaseSolver):
         self.mutation_count = 0
         self.crossover_count = 0
 
-
-
         for generation in range(self.generations):
             # Evaluate fitness
             fitness_scores = [self.fitness(chrom, start_pos) for chrom in population]
@@ -177,10 +174,6 @@ class SimpleGASolver(BaseSolver):
                 self.best_fitness = best_fitness
                 self.best_path = self.decode(population[best_idx], start_pos)
 
-
-
-
-
             # Selection
             parents = self.select_parents(population, fitness_scores)
 
@@ -192,8 +185,6 @@ class SimpleGASolver(BaseSolver):
                                    key=lambda i: fitness_scores[i], reverse=True)
             for i in sorted_indices[:self.elitism_count]:
                 new_population.append(population[i].copy())
-
-
 
             # Crossover and Mutation
             while len(new_population) < self.population_size:
@@ -217,8 +208,6 @@ class SimpleGASolver(BaseSolver):
         target_squares = self.n * self.n
         unique_visited = len(set(self.best_path))
         success = unique_visited == target_squares
-
-
 
         return success, self.best_path
 
