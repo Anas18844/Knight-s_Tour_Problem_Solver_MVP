@@ -20,7 +20,7 @@ def test_level1_verbose():
     print("# TESTING LEVEL 1: SIMPLE GA WITH VERBOSE OUTPUT")
     print("#"*70)
 
-    solver = SimpleGASolver(n=5, level=1, verbose=True)
+    solver = SimpleGASolver(n=5, level=1)
     solver.generations = 30  # Reduced for demonstration
 
     success, path = solver.solve(0, 0)
@@ -36,7 +36,7 @@ def test_level2_verbose():
     print("# TESTING LEVEL 2: ENHANCED GA WITH VERBOSE OUTPUT")
     print("#"*70)
 
-    solver = EnhancedGASolver(n=5, level=2, verbose=True)
+    solver = EnhancedGASolver(n=5, level=2)
     solver.generations = 30
 
     success, path = solver.solve(0, 0)
@@ -52,7 +52,7 @@ def test_level3_verbose():
     print("# TESTING LEVEL 3: CULTURAL GA WITH VERBOSE OUTPUT")
     print("#"*70)
 
-    solver = CulturalGASolver(n=5, level=3, verbose=True)
+    solver = CulturalGASolver(n=5, level=3)
     solver.generations = 30
 
     success, path = solver.solve(0, 0)

@@ -1,15 +1,12 @@
-"""
-Unit Tests for Level 3 - Cultural GA with Belief Space
-Tests belief space functionality, guided operators, and knowledge learning
-"""
-
 import unittest
 import sys
 import os
+import random
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
 from algorithms.cultural.level3_cultural_ga import CulturalGASolver, BeliefSpace
+from algorithms.cultural.cultural import CulturalAlgorithmSolver, AdvancedBeliefSpace
 
 
 class TestBeliefSpace(unittest.TestCase):
@@ -76,7 +73,7 @@ class TestBeliefSpace(unittest.TestCase):
         diff = self.belief_space.get_position_difficulty(pos)
 
         # Difficulty = 1 - success_rate = 1 - 0.8 = 0.2
-        self.assertEqual(diff, 0.2)
+        self.assertAlmostEqual(diff, 0.2)
 
     def test_suggest_move(self):
         """Test move suggestion"""
@@ -202,6 +199,73 @@ class TestLevel3CulturalGA(unittest.TestCase):
         self.assertIsInstance(path, list)
         self.assertGreater(len(path), 0)
         self.assertEqual(path[0], (0, 0))
+
+
+class TestLevel4CulturalGA(unittest.TestCase):
+    """Test cases for Advanced Cultural GA (Level 4)"""
+
+    def setUp(self):
+        """Set up test fixtures"""
+        self.n = 5
+        self.start_pos = (0, 0)
+
+    def test_initialization(self):
+        """Test Level 4 solver initialization"""
+        solver = CulturalAlgorithmSolver(n=self.n, level=4, use_warnsdorff=True)
+        self.assertEqual(solver.n, self.n)
+        self.assertEqual(solver.level, 4)
+        self.assertTrue(solver.use_warnsdorff)
+        self.assertIsInstance(solver.belief_space, AdvancedBeliefSpace)
+        self.assertGreater(solver.population_size, 0)
+
+    def test_solve_with_warnsdorff(self):
+        """Test Level 4 solve with Warnsdorff's rule"""
+        solver = CulturalAlgorithmSolver(n=self.n, level=4, use_warnsdorff=True)
+        solver.generations = 50 # Reduced for faster test
+
+        success, path = solver.solve(self.start_pos[0], self.start_pos[1])
+
+        self.assertIsInstance(success, bool)
+        self.assertIsInstance(path, list)
+        self.assertGreater(len(path), 0)
+        self.assertEqual(path[0], self.start_pos)
+        # It's hard to assert coverage directly as it's non-deterministic, but should aim for high coverage
+        self.assertGreaterEqual(len(set(path)), self.n * self.n * 0.5) # At least 50% coverage
+
+    def test_solve_without_warnsdorff(self):
+        """Test Level 4 solve without Warnsdorff's rule (for comparison)"""
+        solver = CulturalAlgorithmSolver(n=self.n, level=4, use_warnsdorff=False)
+        solver.generations = 50 # Reduced for faster test
+
+        success, path = solver.solve(self.start_pos[0], self.start_pos[1])
+
+        self.assertIsInstance(success, bool)
+        self.assertIsInstance(path, list)
+        self.assertGreater(len(path), 0)
+        self.assertEqual(path[0], self.start_pos)
+        self.assertGreaterEqual(len(set(path)), self.n * self.n * 0.5) # At least 50% coverage
+
+    def test_warnsdorff_impact_on_decode(self):
+        """Verify Warnsdorff's rule influences decode method"""
+        solver_warnsdorff = CulturalAlgorithmSolver(n=self.n, level=4, use_warnsdorff=True)
+        solver_no_warnsdorff = CulturalAlgorithmSolver(n=self.n, level=4, use_warnsdorff=False)
+
+        # Create a dummy chromosome
+        chromosome = [random.randint(0, 7) for _ in range(self.n * self.n * 2)] # Longer chromosome
+
+        # Decode paths
+        path_w = solver_warnsdorff.decode(chromosome, self.start_pos)
+        path_no_w = solver_no_warnsdorff.decode(chromosome, self.start_pos)
+
+        self.assertGreater(len(path_w), 0)
+        self.assertGreater(len(path_no_w), 0)
+
+        # This test is tricky because it's hard to assert direct impact in a deterministic way.
+        # We can at least check that the paths generated are not identical if the conditions for Warnsdorff apply.
+        # However, due to randomness and complexity, they might coincidentally be the same.
+        # A more robust test would involve specific board states where Warnsdorff *must* choose a different path.
+        # For now, we'll just ensure they produce valid paths.
+        self.assertNotEqual(path_w, path_no_w, "Paths should ideally differ when Warnsdorff is enabled/disabled")
 
 
 if __name__ == '__main__':

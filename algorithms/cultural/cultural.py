@@ -1,6 +1,7 @@
 import random
 from typing import List, Tuple, Set, Dict
 from .level3_cultural_ga import CulturalGASolver, BeliefSpace
+from .utils import MobilityManager
 
 
 class AdvancedBeliefSpace(BeliefSpace):
@@ -95,8 +96,10 @@ class AdvancedBeliefSpace(BeliefSpace):
 
 
 class CulturalAlgorithmSolver(CulturalGASolver):
-    def __init__(self, n: int, level: int = 4, verbose: bool = False):
-        super().__init__(n=n, level=level, verbose=verbose)
+
+    def __init__(self, n: int, level: int = 4, use_warnsdorff: bool = True):
+        super().__init__(n=n, level=level)
+        self.use_warnsdorff = use_warnsdorff
 
         # Replace basic belief space with advanced one
         self.belief_space = AdvancedBeliefSpace(n)
@@ -107,6 +110,92 @@ class CulturalAlgorithmSolver(CulturalGASolver):
         self.local_search_freq = 5  # Apply local search more frequently (was 10)
         self.local_search_attempts = 10  # More swap attempts per local search (was 5)
         self.diversity_injection_freq = 15  # Inject diversity every N generations to avoid premature convergence
+
+    def decode(self, chromosome: List[int], start_pos: Tuple[int, int]) -> List[Tuple[int, int]]:
+        path = [start_pos]
+        visited = {start_pos}
+        current_pos = start_pos
+        mobility_manager = MobilityManager(self.n, visited)
+
+        for move_index in chromosome:
+            if len(visited) >= self.n * self.n:
+                break
+
+            next_pos = self.apply_move(current_pos, move_index)
+
+            if self.is_valid_position(next_pos[0], next_pos[1]) and next_pos not in visited:
+                if self.use_warnsdorff:
+                    mobility = mobility_manager.get_mobility(next_pos[0], next_pos[1])
+                else:
+                    mobility = self._get_mobility(next_pos, visited | {next_pos})
+                difficulty = self.belief_space.get_position_difficulty(next_pos)
+
+                if mobility > 0 or (len(visited) < 5 and difficulty < 0.7):
+                    path.append(next_pos)
+                    visited.add(next_pos)
+                    current_pos = next_pos
+                    mobility_manager.update_after_move(current_pos, visited)
+                    continue
+
+            valid_moves = self.get_valid_moves_from(current_pos[0], current_pos[1], visited)
+            if not valid_moves:
+                break
+
+            if self.use_warnsdorff:
+
+                move_mobilities = []
+                for move in valid_moves:
+                    mobility = mobility_manager.get_mobility(move[0], move[1])
+                    move_mobilities.append((move, mobility))
+
+                if move_mobilities:
+                    min_mobility = min(move_mobilities, key=lambda x: x[1])[1]
+                    best_moves = [move for move, mobility in move_mobilities if mobility == min_mobility]
+
+                    if len(best_moves) == 1:
+                        best_move = best_moves[0]
+                    else:
+                        # Tie-breaking with existing scoring function
+                        best_move = None
+                        max_score = -1
+                        for candidate in best_moves:
+                            mobility = mobility_manager.get_mobility(candidate[0], candidate[1])
+                            future_moves = len(self.get_valid_moves_from(candidate[0], candidate[1], visited | {candidate}))
+                            difficulty = self.belief_space.get_position_difficulty(candidate)
+                            score = mobility * 2 + future_moves - difficulty * 10
+                            if score > max_score:
+                                max_score = score
+                                best_move = candidate
+                        if best_move is None and best_moves:
+                            best_move = best_moves[0]
+                else:
+                    best_move = None
+            else:
+                # Original scoring logic
+                best_move = None
+                max_score = -1
+                for candidate in valid_moves:
+                    mobility = mobility_manager.get_mobility(candidate[0], candidate[1])
+                    future_moves = len(self.get_valid_moves_from(candidate[0], candidate[1], visited | {candidate}))
+                    difficulty = self.belief_space.get_position_difficulty(candidate)
+
+                    score = mobility * 2 + future_moves - difficulty * 10
+                    if score > max_score:
+                        max_score = score
+                        best_move = candidate
+
+            if best_move is None:
+                if valid_moves:
+                    best_move = valid_moves[0]
+                else:
+                    break # No valid moves left
+
+            path.append(best_move)
+            visited.add(best_move)
+            current_pos = best_move
+            mobility_manager.update_after_move(current_pos, visited)
+
+        return path
 
     def fitness(self, chromosome: List[int], start_pos: Tuple[int, int]) -> float:
 
@@ -176,6 +265,29 @@ class CulturalAlgorithmSolver(CulturalGASolver):
 
         return float(fitness_score)
 
+    def _find_bad_moves(self, chromosome: List[int], start_pos: Tuple[int, int]) -> List[int]:
+        """Analyzes a chromosome's path to find indices of bad moves."""
+        path = [start_pos]
+        visited = {start_pos}
+        current_pos = start_pos
+        bad_move_indices = []
+
+        for i, move_index in enumerate(chromosome):
+            if len(visited) >= self.n * self.n:
+                break
+
+            next_pos = self.apply_move(current_pos, move_index)
+
+            if not self.is_valid_position(next_pos[0], next_pos[1]) or next_pos in visited:
+                bad_move_indices.append(i)
+            else:
+                path.append(next_pos)
+                visited.add(next_pos)
+                current_pos = next_pos
+        
+        return bad_move_indices
+
+
     def local_search(self, chromosome: List[int], start_pos: Tuple[int, int]) -> List[int]:
         current_fitness = self.fitness(chromosome, start_pos)
         best_chromosome = chromosome.copy()
@@ -242,6 +354,27 @@ class CulturalAlgorithmSolver(CulturalGASolver):
                         best_chromosome = test_chromosome.copy()
                         improvement_found = True
 
+            # Strategy 4: Smarter Swaps (targeting bad moves)
+            bad_moves = self._find_bad_moves(best_chromosome, start_pos)
+            if bad_moves:
+                for _ in range(self.local_search_attempts // 2):
+                    bad_move_idx = random.choice(bad_moves)
+                    
+                    # Try swapping with another random gene
+                    swap_with_idx = random.randint(0, len(best_chromosome) - 1)
+                    if swap_with_idx == bad_move_idx:
+                        continue
+
+                    test_chromosome = best_chromosome.copy()
+                    test_chromosome[bad_move_idx], test_chromosome[swap_with_idx] = test_chromosome[swap_with_idx], test_chromosome[bad_move_idx]
+                    
+                    new_fitness = self.fitness(test_chromosome, start_pos)
+                    if new_fitness > best_fitness:
+                        best_fitness = new_fitness
+                        best_chromosome = test_chromosome
+                        improvement_found = True
+                        break # Found an improvement, restart the loop
+
         return best_chromosome
 
     def mutate(self, chromosome: List[int]) -> List[int]:
@@ -296,26 +429,7 @@ class CulturalAlgorithmSolver(CulturalGASolver):
         self.crossover_count = 0
         self.belief_space = AdvancedBeliefSpace(self.n)
 
-        # Verbose: Initial configuration output
-        if self.verbose:
-            print(f"\n{'='*70}")
-            print(f"LEVEL 4: ADVANCED CULTURAL ALGORITHM")
-            print(f"{'='*70}")
-            print(f"Board Size: {self.n}x{self.n} ({self.n*self.n} squares)")
-            print(f"Start Position: {start_pos}")
-            print(f"Population Size: {self.population_size}")
-            print(f"Generations: {self.generations}")
-            print(f"Mutation Rate: {self.mutation_rate:.2%} (adaptive)")
-            print(f"Elitism: Top {self.elitism_count} preserved")
-            print(f"\nLevel 4 Advanced Features:")
-            print(f"  • Advanced Belief Space: Active")
-            print(f"  • Transition Quality Tracking: Enabled")
-            print(f"  • Pattern Recognition: 3-move sequences")
-            print(f"  • Stagnation Detection: Enabled")
-            print(f"  • Adaptive Mutation: Increases when stuck")
-            print(f"  • Local Search: Every {self.local_search_freq} generations")
-            print(f"  • Enhanced Fitness: Consecutive moves, low-degree bonus")
-            print(f"{'='*70}\n")
+
 
         for generation in range(self.generations):
             decoded_paths = [self.decode(chrom, start_pos) for chrom in population]
@@ -360,34 +474,7 @@ class CulturalAlgorithmSolver(CulturalGASolver):
                         population[idx] = [random.randint(0, 7) for _ in range(self.n * self.n * 2)]
                         fitness_scores[idx] = self.fitness(population[idx], start_pos)
 
-            # Verbose: Show progress every 10 generations
-            if self.verbose and generation % 10 == 0:
-                unique_squares = len(set(self.best_path))
 
-                # Calculate belief space statistics
-                stagnation = self.belief_space.get_stagnation_level()
-                dynamic_mutation_rate = self.mutation_rate + (stagnation * 0.3)
-
-                total_move_usage = sum(self.belief_space.move_usage.values())
-                num_patterns = len(self.belief_space.good_patterns)
-                num_transitions = len(self.belief_space.transition_quality)
-                num_dangerous = len(self.belief_space.dangerous_transitions)
-
-                print(f"\nGeneration {generation:3d}/{self.generations}")
-                print(f"  Fitness: Best={best_fitness:6.1f} | Avg={avg_fitness:6.1f} | Min={min(fitness_scores):6.1f} | Max={max(fitness_scores):6.1f}")
-                print(f"  Coverage: {unique_squares}/{self.n*self.n} squares ({unique_squares/(self.n*self.n)*100:.1f}%)")
-                print(f"  Path Length: {len(self.best_path)} moves")
-                print(f"  Level 4 Advanced Metrics:")
-                print(f"    - Stagnation Level: {stagnation:.2f} {'⚠ HIGH' if stagnation > 0.7 else ''}")
-                print(f"    - Dynamic Mutation Rate: {dynamic_mutation_rate:.2%}")
-                print(f"    - Good Patterns Learned: {num_patterns}")
-                print(f"    - Transitions Tracked: {num_transitions}")
-                print(f"    - Dangerous Transitions: {num_dangerous}")
-                print(f"    - Population Diversity: {diversity:.2f} {'⚠ LOW - Injecting diversity' if diversity < 0.3 else '✓ HEALTHY'}")
-                if generation > 20 and generation % self.local_search_freq == 0:
-                    print(f"    - Local Search: ✓ Applied this generation (top 3 individuals)")
-                if generation > 30 and generation % self.diversity_injection_freq == 0 and diversity < 0.3:
-                    print(f"    - Diversity Injection: ✓ Replaced bottom 20% with fresh individuals")
 
             parents = self.select_parents(population, fitness_scores)
 
@@ -408,38 +495,7 @@ class CulturalAlgorithmSolver(CulturalGASolver):
 
             population = new_population
 
-        # Verbose: Final summary with advanced belief space analysis
-        if self.verbose:
-            target_squares = self.n * self.n
-            unique_visited = len(set(self.best_path))
-            success = unique_visited == target_squares
 
-            print(f"\n{'='*70}")
-            print(f"LEVEL 4 FINAL RESULTS")
-            print(f"{'='*70}")
-            print(f"Success: {'✓ Complete Tour!' if success else '✗ Partial Tour'}")
-            print(f"Coverage: {unique_visited}/{target_squares} squares ({unique_visited/target_squares*100:.1f}%)")
-            print(f"Path Length: {len(self.best_path)} moves")
-            print(f"Best Fitness: {self.best_fitness:.1f}")
-            print(f"Final Diversity: {self.population_diversity[-1]:.2f}")
-            print(f"Final Stagnation: {self.belief_space.get_stagnation_level():.2f}")
-
-            print(f"\nAdvanced Belief Space Summary:")
-            print(f"  Total Patterns Learned: {len(self.belief_space.good_patterns)}")
-            print(f"  Transitions Tracked: {len(self.belief_space.transition_quality)}")
-            print(f"  Dangerous Transitions Identified: {len(self.belief_space.dangerous_transitions)}")
-            print(f"  Stagnation Events: {self.belief_space.stagnation_counter}")
-
-            if self.belief_space.good_patterns:
-                print(f"\n  Top 3 Successful Patterns:")
-                for i, (pattern, fitness) in enumerate(self.belief_space.good_patterns[:3]):
-                    print(f"    {i+1}. Fitness {fitness:.1f}: {pattern[0]} → {pattern[1]} → {pattern[2]}")
-
-            print(f"\nTotal Genetic Operations:")
-            print(f"  - Crossovers: {self.crossover_count}")
-            print(f"  - Mutations (adaptive): {self.mutation_count}")
-            print(f"  - Local Searches Applied: {max(0, (self.generations - 20) // self.local_search_freq)}")
-            print(f"{'='*70}\n")
 
         target_squares = self.n * self.n
         unique_visited = len(set(self.best_path))
