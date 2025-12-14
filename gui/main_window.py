@@ -5,6 +5,11 @@ import queue
 from typing import Optional, Tuple, Dict, List, Any
 import json
 from datetime import datetime
+import sys
+import os
+
+# Add project root to sys.path
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from algorithms import BacktrackingSolver, CulturalAlgorithmSolver
 from database import DatabaseManager
@@ -312,7 +317,7 @@ class KnightTourGUI:
             elif level == 2 and algorithm == "Cultural Algorithm":
                 from algorithms.cultural import EnhancedGASolver
                 # Enable verbose output to show progress
-                solver = EnhancedGASolver(n=board_size, level=level, verbose=True)
+                solver = EnhancedGASolver(n=board_size, level=level)
 
                 start_time = datetime.now()
                 success, path = solver.solve(start_pos[0], start_pos[1])
@@ -335,7 +340,7 @@ class KnightTourGUI:
             elif level == 3 and algorithm == "Cultural Algorithm":
                 from algorithms.cultural import CulturalGASolver
                 # Enable verbose output to show progress
-                solver = CulturalGASolver(n=board_size, level=level, verbose=True)
+                solver = CulturalGASolver(n=board_size, level=level)
 
                 start_time = datetime.now()
                 success, path = solver.solve(start_pos[0], start_pos[1])
@@ -401,7 +406,7 @@ class KnightTourGUI:
             elif level == 4 and algorithm == "Cultural Algorithm":
                 from algorithms.cultural import CulturalAlgorithmSolver
                 # Enable verbose output for Level 4 to show progress
-                solver = CulturalAlgorithmSolver(n=board_size, level=level, verbose=True)
+                solver = CulturalAlgorithmSolver(n=board_size, level=level)
 
                 start_time = datetime.now()
                 success, path = solver.solve(start_pos[0], start_pos[1])

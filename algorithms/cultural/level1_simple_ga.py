@@ -6,7 +6,7 @@ from algorithms.base_solver import BaseSolver
 
 
 class SimpleGASolver(BaseSolver):
-    def __init__(self, n: int, level: int = 1, verbose: bool = False):
+    def __init__(self, n: int, level: int = 1):
         super().__init__(n=n, level=level)
         self.population_size = 30
         self.generations = 100 # 1 -> 2 -> ... -> 100
@@ -20,7 +20,7 @@ class SimpleGASolver(BaseSolver):
         self.generation_avg_fitness = []
         self.mutation_count = 0
         self.crossover_count = 0
-        self.verbose = verbose  # Terminal output flag
+
 
     def initialize_population(self) -> List[List[int]]:
         population = []
@@ -157,18 +157,7 @@ class SimpleGASolver(BaseSolver):
         self.mutation_count = 0
         self.crossover_count = 0
 
-        if self.verbose:
-            print(f"\n{'='*70}")
-            print(f"LEVEL 1: SIMPLE GENETIC ALGORITHM")
-            print(f"{'='*70}")
-            print(f"Board Size: {self.n}×{self.n}")
-            print(f"Population Size: {self.population_size}")
-            print(f"Generations: {self.generations}")
-            print(f"Mutation Rate: {self.mutation_rate}")
-            print(f"Elitism Count: {self.elitism_count}")
-            print(f"Tournament Size: {self.tournament_size}")
-            print(f"Start Position: {start_pos}")
-            print(f"{'='*70}\n")
+
 
         for generation in range(self.generations):
             # Evaluate fitness
@@ -188,23 +177,9 @@ class SimpleGASolver(BaseSolver):
                 self.best_fitness = best_fitness
                 self.best_path = self.decode(population[best_idx], start_pos)
 
-                if self.verbose:
-                    unique_squares = len(set(self.best_path))
-                    print(f" NEW BEST! Gen {generation}: "
-                          f"Fitness={best_fitness:.1f}, "
-                          f"Coverage={unique_squares}/{self.n*self.n}")
 
-            # Verbose output every 10 generations
-            if self.verbose and generation % 10 == 0:
-                unique_squares = len(set(self.best_path))
-                coverage_pct = (unique_squares / (self.n * self.n)) * 100
 
-                print(f"\nGeneration {generation:3d}/{self.generations}")
-                print(f"  Fitness: Best={best_fitness:6.1f} | "
-                      f"Avg={avg_fitness:6.1f} | Min={min_fitness:6.1f} | Max={max_fitness:6.1f}")
-                print(f"  Coverage: {unique_squares}/{self.n*self.n} squares ({coverage_pct:.1f}%)")
-                print(f"  Path Length: {len(self.best_path)} moves")
-                print(f"  Genetic Ops: {self.crossover_count} crossovers, {self.mutation_count} mutations")
+
 
             # Selection
             parents = self.select_parents(population, fitness_scores)
@@ -218,8 +193,7 @@ class SimpleGASolver(BaseSolver):
             for i in sorted_indices[:self.elitism_count]:
                 new_population.append(population[i].copy())
 
-            if self.verbose and generation % 10 == 0:
-                print(f"  Elites Preserved: {self.elitism_count}")
+
 
             # Crossover and Mutation
             while len(new_population) < self.population_size:
@@ -244,17 +218,7 @@ class SimpleGASolver(BaseSolver):
         unique_visited = len(set(self.best_path))
         success = unique_visited == target_squares
 
-        if self.verbose:
-            print(f"\n{'='*70}")
-            print(f"EVOLUTION COMPLETE")
-            print(f"{'='*70}")
-            print(f"Success: {'✓ YES' if success else '✗ NO'}")
-            print(f"Final Best Fitness: {self.best_fitness:.1f}")
-            print(f"Coverage: {unique_visited}/{target_squares} squares ({(unique_visited/target_squares)*100:.1f}%)")
-            print(f"Path Length: {len(self.best_path)} moves")
-            print(f"Total Crossovers: {self.crossover_count}")
-            print(f"Total Mutations: {self.mutation_count}")
-            print(f"{'='*70}\n")
+
 
         return success, self.best_path
 

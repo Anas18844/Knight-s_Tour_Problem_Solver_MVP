@@ -83,8 +83,8 @@ class BeliefSpace:
 
 class CulturalGASolver(EnhancedGASolver):
 
-    def __init__(self, n: int, level: int = 3, verbose: bool = False):
-        super().__init__(n=n, level=level, verbose=verbose)
+    def __init__(self, n: int, level: int = 3):
+        super().__init__(n=n, level=level)
         self.belief_space = BeliefSpace(n)
         self.use_belief_after_gen = 20
 
@@ -223,25 +223,7 @@ class CulturalGASolver(EnhancedGASolver):
         self.crossover_count = 0
         self.belief_space = BeliefSpace(self.n)
 
-        # Verbose: Initial configuration output
-        if self.verbose:
-            print(f"\n{'='*70}")
-            print(f"LEVEL 3: CULTURAL GENETIC ALGORITHM")
-            print(f"{'='*70}")
-            print(f"Board Size: {self.n}x{self.n} ({self.n*self.n} squares)")
-            print(f"Start Position: {start_pos}")
-            print(f"Population Size: {self.population_size}")
-            print(f"Generations: {self.generations}")
-            print(f"Mutation Rate: {self.mutation_rate:.2%}")
-            print(f"Elitism: Top {self.elitism_count} preserved")
-            print(f"\nLevel 3 Cultural Algorithm Features:")
-            print(f"  • Belief Space: Active")
-            print(f"  • Belief Guidance Starts: Generation {self.use_belief_after_gen}")
-            print(f"  • Move Success Tracking: Enabled")
-            print(f"  • Position Difficulty Learning: Enabled")
-            print(f"  • Knowledge-Guided Mutation: Enabled")
-            print(f"  • Elite Knowledge Injection: Enabled")
-            print(f"{'='*70}\n")
+
 
         for generation in range(self.generations):
             decoded_paths = [self.decode(chrom, start_pos) for chrom in population]
@@ -262,41 +244,7 @@ class CulturalGASolver(EnhancedGASolver):
                 self.best_fitness = best_fitness
                 self.best_path = decoded_paths[best_idx]
 
-            # Verbose: Show progress every 10 generations
-            if self.verbose and generation % 10 == 0:
-                unique_squares = len(set(self.best_path))
 
-                # Calculate belief space statistics
-                total_move_usage = sum(self.belief_space.move_usage.values())
-                move_success_rates = {}
-                for move_idx in range(8):
-                    if self.belief_space.move_usage[move_idx] > 0:
-                        rate = self.belief_space.move_success[move_idx] / self.belief_space.move_usage[move_idx]
-                        move_success_rates[move_idx] = rate
-
-                # Find most successful move
-                best_move = -1
-                best_rate = 0
-                if move_success_rates:
-                    best_move = max(move_success_rates.keys(), key=lambda x: move_success_rates[x])
-                    best_rate = move_success_rates[best_move]
-
-                # Check if belief guidance is active
-                belief_active = self.belief_space.generation_count >= self.use_belief_after_gen
-
-                print(f"\nGeneration {generation:3d}/{self.generations}")
-                print(f"  Fitness: Best={best_fitness:6.1f} | Avg={avg_fitness:6.1f} | Min={min(fitness_scores):6.1f} | Max={max(fitness_scores):6.1f}")
-                print(f"  Coverage: {unique_squares}/{self.n*self.n} squares ({unique_squares/(self.n*self.n)*100:.1f}%)")
-                print(f"  Path Length: {len(self.best_path)} moves")
-                print(f"  Level 3 Cultural Metrics:")
-                print(f"    - Belief Space Generation: {self.belief_space.generation_count}")
-                print(f"    - Belief Guidance: {'✓ ACTIVE' if belief_active else '✗ Inactive (learning phase)'}")
-                print(f"    - Total Move Usage: {total_move_usage}")
-                if best_move >= 0:
-                    print(f"    - Best Move: #{best_move} (success rate: {best_rate:.1%})")
-                print(f"    - Elite Knowledge Pool: {len(self.belief_space.best_individuals)} individuals")
-                print(f"    - Position Map Size: {len(self.belief_space.mobility_map)} positions tracked")
-                print(f"    - Genetic Ops: {self.crossover_count} crossovers (belief-guided), {self.mutation_count} mutations (belief-guided)")
 
             parents = self.select_parents(population, fitness_scores)
 
@@ -317,34 +265,7 @@ class CulturalGASolver(EnhancedGASolver):
 
             population = new_population
 
-        # Verbose: Final summary with belief space analysis
-        if self.verbose:
-            target_squares = self.n * self.n
-            unique_visited = len(set(self.best_path))
-            success = unique_visited == target_squares
 
-            print(f"\n{'='*70}")
-            print(f"LEVEL 3 FINAL RESULTS")
-            print(f"{'='*70}")
-            print(f"Success: {'✓ Complete Tour!' if success else '✗ Partial Tour'}")
-            print(f"Coverage: {unique_visited}/{target_squares} squares ({unique_visited/target_squares*100:.1f}%)")
-            print(f"Path Length: {len(self.best_path)} moves")
-            print(f"Best Fitness: {self.best_fitness:.1f}")
-            print(f"Final Diversity: {self.population_diversity[-1]:.2f}")
-
-            print(f"\nBelief Space Knowledge Summary:")
-            print(f"  Total Generations Learned: {self.belief_space.generation_count}")
-            print(f"  Move Success Rates:")
-            for move_idx in range(8):
-                if self.belief_space.move_usage[move_idx] > 0:
-                    rate = self.belief_space.move_success[move_idx] / self.belief_space.move_usage[move_idx]
-                    usage_pct = self.belief_space.move_usage[move_idx] / sum(self.belief_space.move_usage.values()) * 100
-                    print(f"    Move {move_idx}: {rate:5.1%} success | {usage_pct:4.1f}% usage | {self.belief_space.move_usage[move_idx]} times")
-
-            print(f"\nTotal Genetic Operations:")
-            print(f"  - Crossovers (with belief injection): {self.crossover_count}")
-            print(f"  - Mutations (belief-guided): {self.mutation_count}")
-            print(f"{'='*70}\n")
 
         target_squares = self.n * self.n
         unique_visited = len(set(self.best_path))

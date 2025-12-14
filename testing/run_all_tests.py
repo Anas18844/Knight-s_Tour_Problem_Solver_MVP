@@ -33,14 +33,15 @@ def run_test_suite():
 
     # Add unit tests
     print("Loading Unit Tests...")
-    unit_tests = loader.discover(unit_dir, pattern='test_*.py')
+    project_root = os.path.abspath(os.path.join(test_dir, '..'))
+    unit_tests = loader.discover(unit_dir, pattern='test_*.py', top_level_dir=project_root)
     suite.addTests(unit_tests)
     unit_test_count = unit_tests.countTestCases()
     print(f"  ✓ Loaded {unit_test_count} unit tests")
 
     # Add logic tests
     print("Loading Logic Tests...")
-    logic_tests = loader.discover(logic_dir, pattern='test_*.py')
+    logic_tests = loader.discover(logic_dir, pattern='test_*.py', top_level_dir=project_root)
     suite.addTests(logic_tests)
     logic_test_count = logic_tests.countTestCases()
     print(f"  ✓ Loaded {logic_test_count} logic tests")
