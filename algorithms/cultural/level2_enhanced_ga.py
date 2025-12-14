@@ -5,8 +5,8 @@ from .level1_simple_ga import SimpleGASolver
 
 class EnhancedGASolver(SimpleGASolver):
 
-    def __init__(self, n: int, level: int = 2):
-        super().__init__(n=n, level=level)
+    def __init__(self, n: int, level: int = 2, verbose: bool = False):
+        super().__init__(n=n, level=level, verbose=verbose)
         self.diversity_weight = 0.05
         self.mobility_weight = 2.0
         self.population_diversity = []
@@ -197,6 +197,24 @@ class EnhancedGASolver(SimpleGASolver):
         self.mutation_count = 0
         self.crossover_count = 0
 
+        # Verbose: Initial configuration output
+        if self.verbose:
+            print(f"\n{'='*70}")
+            print(f"LEVEL 2: ENHANCED GENETIC ALGORITHM")
+            print(f"{'='*70}")
+            print(f"Board Size: {self.n}x{self.n} ({self.n*self.n} squares)")
+            print(f"Start Position: {start_pos}")
+            print(f"Population Size: {self.population_size}")
+            print(f"Generations: {self.generations}")
+            print(f"Mutation Rate: {self.mutation_rate:.2%}")
+            print(f"Elitism: Top {self.elitism_count} preserved")
+            print(f"\nLevel 2 Enhancements:")
+            print(f"  • Mobility Weight: {self.mobility_weight}")
+            print(f"  • Diversity Weight: {self.diversity_weight}")
+            print(f"  • Heuristic Repair: Enabled")
+            print(f"  • Smart Mutation: Enabled")
+            print(f"{'='*70}\n")
+
         for generation in range(self.generations):
             fitness_scores = [self.fitness(chrom, start_pos) for chrom in population]
 
@@ -212,6 +230,27 @@ class EnhancedGASolver(SimpleGASolver):
             if best_fitness > self.best_fitness:
                 self.best_fitness = best_fitness
                 self.best_path = self.decode(population[best_idx], start_pos)
+
+            # Verbose: Show progress every 10 generations
+            if self.verbose and generation % 10 == 0:
+                unique_squares = len(set(self.best_path))
+                avg_mobility = 0
+                if self.best_path:
+                    visited_set = set()
+                    total_mobility = 0
+                    for pos in self.best_path:
+                        visited_set.add(pos)
+                        total_mobility += self._get_mobility(pos, visited_set)
+                    avg_mobility = total_mobility / len(self.best_path)
+
+                print(f"\nGeneration {generation:3d}/{self.generations}")
+                print(f"  Fitness: Best={best_fitness:6.1f} | Avg={avg_fitness:6.1f} | Min={min(fitness_scores):6.1f} | Max={max(fitness_scores):6.1f}")
+                print(f"  Coverage: {unique_squares}/{self.n*self.n} squares ({unique_squares/(self.n*self.n)*100:.1f}%)")
+                print(f"  Path Length: {len(self.best_path)} moves")
+                print(f"  Level 2 Metrics:")
+                print(f"    - Population Diversity: {diversity:.2f}")
+                print(f"    - Avg Mobility: {avg_mobility:.2f}")
+                print(f"    - Genetic Ops: {self.crossover_count} crossovers (with repair), {self.mutation_count} mutations (smart)")
 
             parents = self.select_parents(population, fitness_scores)
 
@@ -231,6 +270,25 @@ class EnhancedGASolver(SimpleGASolver):
                     new_population.append(child2)
 
             population = new_population
+
+        # Verbose: Final summary
+        if self.verbose:
+            target_squares = self.n * self.n
+            unique_visited = len(set(self.best_path))
+            success = unique_visited == target_squares
+
+            print(f"\n{'='*70}")
+            print(f"LEVEL 2 FINAL RESULTS")
+            print(f"{'='*70}")
+            print(f"Success: {'✓ Complete Tour!' if success else '✗ Partial Tour'}")
+            print(f"Coverage: {unique_visited}/{target_squares} squares ({unique_visited/target_squares*100:.1f}%)")
+            print(f"Path Length: {len(self.best_path)} moves")
+            print(f"Best Fitness: {self.best_fitness:.1f}")
+            print(f"Final Diversity: {self.population_diversity[-1]:.2f}")
+            print(f"Total Genetic Operations:")
+            print(f"  - Crossovers (with heuristic repair): {self.crossover_count}")
+            print(f"  - Mutations (smart selection): {self.mutation_count}")
+            print(f"{'='*70}\n")
 
         target_squares = self.n * self.n
         unique_visited = len(set(self.best_path))

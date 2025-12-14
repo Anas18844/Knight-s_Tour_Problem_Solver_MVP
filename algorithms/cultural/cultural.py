@@ -1,490 +1,453 @@
-import time
 import random
-from typing import List, Tuple, Optional, Callable, Set, Dict
+from typing import List, Tuple, Set, Dict
+from .level3_cultural_ga import CulturalGASolver, BeliefSpace
 
 
-class Individual:
+class AdvancedBeliefSpace(BeliefSpace):
 
-    def __init__(self, board_size: int, start_pos: Tuple[int, int]):
-        self.board_size = board_size
-        self.start_pos = start_pos
-        self.path = [start_pos]
-        self.fitness = 0.0
-        self.visited = {start_pos}
+    def __init__(self, n: int):
+        super().__init__(n)
 
-    def add_move(self, position: Tuple[int, int]):
-        self.path.append(position)
-        self.visited.add(position)
+        # Advanced tracking beyond Level 3
+        self.transition_quality = {}  # Track success/failure of position pairs
+        self.dangerous_transitions = set()  # Patterns that lead to poor solutions
+        self.good_patterns = []  # Successful 3-move patterns (pattern, fitness)
+        self.stagnation_counter = 0  # Count generations without improvement
+        self.last_best_fitness = 0  # Track fitness for stagnation detection
 
+    def update(self, population: List[List[int]], fitness_scores: List[float], decoded_paths: List[List[Tuple[int, int]]]):
+        # Call parent update for basic belief space learning
+        super().update(population, fitness_scores, decoded_paths)
 
-class BeliefSpace:
-
-    def __init__(self, board_size: int):
-        self.board_size = board_size
-        self.best_fitness = 0
-        self.best_path = []
-        self.best_solution = None
-        self.valid_knight_moves = [(2, 1), (1, 2), (-1, 2), (-2, 1), (-2, -1), (-1, -2), (1, -2), (2, -1)]
-
-        self.successful_moves = {}
-        self.transition_quality = {}
-        self.dangerous_transitions = set()
-        self.good_patterns = []
-        self.position_degrees = {}
-        self.stagnation_counter = 0
-        self.last_best_fitness = 0
-
-    def update(self, individuals: List[Individual]):
-        sorted_individuals = sorted(individuals, key=lambda ind: ind.fitness, reverse=True)
-        best_individual = sorted_individuals[0]
-
-        if best_individual.fitness > self.best_fitness:
-            self.best_fitness = best_individual.fitness
-            self.best_path = best_individual.path.copy()
-            self.best_solution = best_individual
-            self.stagnation_counter = 0
+        # Track stagnation - if fitness isn't improving, increase counter
+        current_best = max(fitness_scores)
+        if abs(current_best - self.last_best_fitness) < 1:
+            self.stagnation_counter += 1
         else:
-            if abs(best_individual.fitness - self.last_best_fitness) < 1:
-                self.stagnation_counter += 1
-            else:
-                self.stagnation_counter = 0
+            self.stagnation_counter = max(0, self.stagnation_counter - 1)
+        self.last_best_fitness = current_best
 
-        self.last_best_fitness = best_individual.fitness
+        # Learn from top performers (top 20%)
+        sorted_indices = sorted(range(len(fitness_scores)), key=lambda i: fitness_scores[i], reverse=True)
+        top_count = max(1, len(sorted_indices) // 5)
 
-        top_count = max(1, len(sorted_individuals) // 5)
-        top_performers = sorted_individuals[:top_count]
+        for i in range(top_count):
+            idx = sorted_indices[i]
+            path = decoded_paths[idx]
+            fitness = fitness_scores[idx]
 
-        for individual in top_performers:
-            for i in range(len(individual.path) - 1):
-                current_pos = individual.path[i]
-                next_pos = individual.path[i + 1]
-
-                if current_pos not in self.successful_moves:
-                    self.successful_moves[current_pos] = []
-
-                if next_pos not in self.successful_moves[current_pos]:
-                    self.successful_moves[current_pos].append(next_pos)
-
+            # Track transition quality (pairs of positions)
+            for j in range(len(path) - 1):
+                current_pos = path[j]
+                next_pos = path[j + 1]
                 transition = (current_pos, next_pos)
+
                 if transition not in self.transition_quality:
                     self.transition_quality[transition] = {'success': 0, 'failure': 0}
 
-                if individual.fitness > self.board_size ** 2 * 0.7:
+                # High fitness = successful transition
+                if fitness > (self.n * self.n) * 7:  # Good solutions (fitness > 7 * board_size)
                     self.transition_quality[transition]['success'] += 1
                 else:
                     self.transition_quality[transition]['failure'] += 1
 
-            if len(individual.path) >= self.board_size ** 2 * 0.7:
-                for k in range(len(individual.path) - 2):
-                    pattern = (individual.path[k], individual.path[k + 1], individual.path[k + 2])
+            # Store successful 3-move patterns (for pattern injection)
+            if len(path) >= self.n * self.n * 0.7:  # Path covers at least 70% of board
+                for k in range(len(path) - 2):
+                    pattern = (path[k], path[k + 1], path[k + 2])
+                    # Avoid duplicates
                     if pattern not in [p[0] for p in self.good_patterns]:
-                        self.good_patterns.append((pattern, individual.fitness))
+                        self.good_patterns.append((pattern, fitness))
 
+        # Keep only best patterns (limit memory usage)
         self.good_patterns.sort(key=lambda x: x[1], reverse=True)
         self.good_patterns = self.good_patterns[:15]
 
-        bottom_performers = sorted_individuals[-max(1, len(sorted_individuals) // 10):]
-        for individual in bottom_performers:
-            if len(individual.path) < self.board_size ** 2 * 0.5:
-                for i in range(len(individual.path) - 1):
-                    transition = (individual.path[i], individual.path[i + 1])
+        # Learn from failures (bottom 10%)
+        bottom_count = max(1, len(sorted_indices) // 10)
+        for i in range(bottom_count):
+            idx = sorted_indices[-(i + 1)]
+            path = decoded_paths[idx]
+
+            # If path is very poor, mark its transitions as dangerous
+            if len(path) < self.n * self.n * 0.5:
+                for j in range(len(path) - 1):
+                    transition = (path[j], path[j + 1])
                     self.dangerous_transitions.add(transition)
-
-    def get_suggested_move(self, current_pos: Tuple[int, int], visited: Set[Tuple[int, int]]) -> Optional[Tuple[int, int]]:
-        if current_pos in self.successful_moves:
-            valid_suggestions = [pos for pos in self.successful_moves[current_pos] if pos not in visited]
-            if valid_suggestions:
-                scored_suggestions = []
-                for pos in valid_suggestions:
-                    transition = (current_pos, pos)
-                    quality = self.transition_quality.get(transition, {'success': 1, 'failure': 1})
-                    score = quality['success'] / max(1, quality['success'] + quality['failure'])
-                    scored_suggestions.append((pos, score))
-
-                scored_suggestions.sort(key=lambda x: x[1], reverse=True)
-
-                if random.random() < 0.7:
-                    return scored_suggestions[0][0]
-                else:
-                    return random.choice(scored_suggestions)[0]
-        return None
 
     def is_good_transition(self, pos1: Tuple[int, int], pos2: Tuple[int, int]) -> bool:
         transition = (pos1, pos2)
+
+        # Avoid known dangerous transitions
         if transition in self.dangerous_transitions:
             return False
 
+        # Check quality data
         if transition in self.transition_quality:
             quality = self.transition_quality[transition]
             return quality['success'] > quality['failure']
 
+        # Unknown transition - assume neutral (True)
         return True
 
     def get_stagnation_level(self) -> float:
         return min(1.0, self.stagnation_counter / 30.0)
 
 
-class CulturalAlgorithmSolver:
-    MOVES = [(2, 1), (1, 2), (-1, 2), (-2, 1), (-2, -1), (-1, -2), (1, -2), (2, -1)]
+class CulturalAlgorithmSolver(CulturalGASolver):
+    def __init__(self, n: int, level: int = 4, verbose: bool = False):
+        super().__init__(n=n, level=level, verbose=verbose)
 
-    def __init__(self, board_size: int, start_pos: Tuple[int, int] = (0, 0),
-                 population_size: int = 100, max_generations: int = 500,
-                 timeout: float = 60.0, progress_callback: Optional[Callable] = None):
-        self.board_size = board_size
-        self.start_pos = start_pos
-        self.population_size = population_size
-        self.max_generations = max_generations
-        self.timeout = timeout
-        self.progress_callback = progress_callback
+        # Replace basic belief space with advanced one
+        self.belief_space = AdvancedBeliefSpace(n)
 
-        self.population = []
-        self.belief_space = BeliefSpace(board_size)
-        self.generation_count = 0
-        self.best_solution = None
-        self.start_time = None
-        self.timed_out = False
-        self.base_mutation_rate = 0.2
+        # Level 4 specific parameters - ENHANCED FOR BETTER PERFORMANCE
+        self.population_size = 150  # Increased from default 100
+        self.generations = 300  # Increased from default 100
+        self.local_search_freq = 5  # Apply local search more frequently (was 10)
+        self.local_search_attempts = 10  # More swap attempts per local search (was 5)
+        self.diversity_injection_freq = 15  # Inject diversity every N generations to avoid premature convergence
 
-    def is_valid_move(self, x: int, y: int) -> bool:
-        return 0 <= x < self.board_size and 0 <= y < self.board_size
+    def fitness(self, chromosome: List[int], start_pos: Tuple[int, int]) -> float:
 
-    def get_valid_moves(self, pos: Tuple[int, int], visited: Set[Tuple[int, int]]) -> List[Tuple[int, int]]:
-        x, y = pos
-        valid_moves = []
+        path = self.decode(chromosome, start_pos)
+        if not path:
+            return 0.0
 
-        for dx, dy in self.MOVES:
-            next_x, next_y = x + dx, y + dy
-            next_pos = (next_x, next_y)
-
-            if self.is_valid_move(next_x, next_y) and next_pos not in visited:
-                valid_moves.append(next_pos)
-
-        return valid_moves
-
-    def get_degree(self, pos: Tuple[int, int], visited: Set[Tuple[int, int]]) -> int:
-        return len(self.get_valid_moves(pos, visited))
-
-    def calculate_fitness(self, individual: Individual) -> float:
-        individual.visited = set(individual.path)
-        unique_squares = len(individual.visited)
-        max_squares = self.board_size ** 2
-
-        fitness = unique_squares * 20
-
-        if unique_squares == max_squares:
-            fitness += 500
-
+        unique_count = len(set(path))
         legal_transitions = 0
         consecutive_segments = 0
         current_segment = 1
         low_degree_visits = 0
+        total_mobility = 0
 
-        visited_so_far = {individual.path[0]}
-        for i in range(len(individual.path)):
-            if i > 0:
-                visited_so_far.add(individual.path[i])
+        visited_set = set()
 
-            degree = self.get_degree(individual.path[i], visited_so_far)
-            if degree <= 2:
+        for i, pos in enumerate(path):
+            visited_set.add(pos)
+
+            # Track mobility (from Level 2)
+            mobility = self._get_mobility(pos, visited_set)
+            total_mobility += mobility
+
+            # Track low-degree visits (Warnsdorff heuristic bonus)
+            if mobility <= 2:
                 low_degree_visits += 1
 
-            if i < len(individual.path) - 1:
-                x1, y1 = individual.path[i]
-                x2, y2 = individual.path[i + 1]
+            # Check transitions
+            if i < len(path) - 1:
+                x1, y1 = path[i]
+                x2, y2 = path[i + 1]
                 dx, dy = abs(x2 - x1), abs(y2 - y1)
 
+                # Legal knight move
                 if (dx == 2 and dy == 1) or (dx == 1 and dy == 2):
                     legal_transitions += 1
                     current_segment += 1
                 else:
+                    # Illegal move - end current segment and penalize
                     consecutive_segments += current_segment
                     current_segment = 1
-                    fitness -= 30
 
+        # Add final segment
         consecutive_segments += current_segment
 
-        repeats = len(individual.path) - unique_squares
-        repeat_penalty = repeats * 15
+        # Calculate penalties
+        repeat_penalty = 0
+        if len(path) > unique_count:
+            repeat_penalty = (len(path) - unique_count) * 15
 
-        fitness += legal_transitions * 10
-        fitness += consecutive_segments * 4
-        fitness += low_degree_visits * 5
-        fitness -= repeat_penalty
+        # Calculate average mobility
+        avg_mobility = total_mobility / len(path) if len(path) > 0 else 0
 
-        return fitness
+        # Advanced fitness calculation
+        fitness_score = (
+            unique_count * 20 +              # Unique squares (highest weight)
+            legal_transitions * 10 +          # Legal moves
+            consecutive_segments * 4 +        # Consecutive valid sequences
+            avg_mobility * self.mobility_weight +  # Mobility bonus
+            low_degree_visits * 5 -           # Warnsdorff bonus
+            repeat_penalty                    # Penalty for revisiting
+        )
 
-    def create_individual(self) -> Individual:
-        individual = Individual(self.board_size, self.start_pos)
-        current_pos = self.start_pos
-        max_moves = self.board_size ** 2
+        # Bonus for complete tour
+        if unique_count == self.n * self.n:
+            fitness_score += 500
 
-        for _ in range(max_moves - 1):
-            next_pos = None
+        return float(fitness_score)
 
-            if self.generation_count > 10 and random.random() < 0.5:
-                next_pos = self.belief_space.get_suggested_move(current_pos, individual.visited)
+    def local_search(self, chromosome: List[int], start_pos: Tuple[int, int]) -> List[int]:
+        current_fitness = self.fitness(chromosome, start_pos)
+        best_chromosome = chromosome.copy()
+        best_fitness = current_fitness
+        improvement_found = True
 
-            if next_pos is None:
-                valid_moves = self.get_valid_moves(current_pos, individual.visited)
-                if not valid_moves:
+        # Iterate until no more improvements
+        iterations = 0
+        max_iterations = 3  # Prevent infinite loop
+
+        while improvement_found and iterations < max_iterations:
+            improvement_found = False
+            iterations += 1
+
+            # Strategy 1: Random swaps
+            for _ in range(self.local_search_attempts):
+                if len(chromosome) < 5:
                     break
 
-                if self.generation_count > 5:
-                    scored_moves = []
-                    for move in valid_moves:
-                        degree = self.get_degree(move, individual.visited | {move})
+                i = random.randint(1, len(chromosome) - 4)
+                j = random.randint(i + 2, min(i + 8, len(chromosome) - 1))
 
-                        quality_bonus = 0
-                        if self.belief_space.is_good_transition(current_pos, move):
-                            quality_bonus = 2
+                test_chromosome = best_chromosome.copy()
+                test_chromosome[i], test_chromosome[j] = test_chromosome[j], test_chromosome[i]
 
-                        score = degree * 3 + quality_bonus + random.random() * 0.5
-                        scored_moves.append((move, score))
+                new_fitness = self.fitness(test_chromosome, start_pos)
 
-                    scored_moves.sort(key=lambda x: x[1])
+                if new_fitness > best_fitness:
+                    best_fitness = new_fitness
+                    best_chromosome = test_chromosome.copy()
+                    improvement_found = True
 
-                    if random.random() < 0.7:
-                        next_pos = scored_moves[0][0]
-                    else:
-                        next_pos = random.choice(scored_moves[:3] if len(scored_moves) >= 3 else scored_moves)[0]
-                else:
-                    degrees = [(move, self.get_degree(move, individual.visited | {move})) for move in valid_moves]
-                    degrees.sort(key=lambda x: x[1])
+            # Strategy 2: Segment reversals (helps with order-dependent problems)
+            for _ in range(self.local_search_attempts // 2):
+                if len(chromosome) < 6:
+                    break
 
-                    if random.random() < 0.6:
-                        next_pos = degrees[0][0]
-                    else:
-                        next_pos = random.choice(valid_moves)
+                i = random.randint(1, len(chromosome) - 5)
+                j = random.randint(i + 3, min(i + 10, len(chromosome) - 1))
 
-            individual.add_move(next_pos)
-            current_pos = next_pos
+                test_chromosome = best_chromosome.copy()
+                test_chromosome[i:j] = test_chromosome[i:j][::-1]
 
-        individual.fitness = self.calculate_fitness(individual)
-        return individual
+                new_fitness = self.fitness(test_chromosome, start_pos)
 
-    def initialize_population(self):
-        self.population = []
-        for _ in range(self.population_size):
-            individual = self.create_individual()
-            self.population.append(individual)
+                if new_fitness > best_fitness:
+                    best_fitness = new_fitness
+                    best_chromosome = test_chromosome.copy()
+                    improvement_found = True
 
-    def select_parents(self) -> Tuple[Individual, Individual]:
-        tournament_size = 5
+            # Strategy 3: Belief-guided replacement (if belief space is mature)
+            if self.belief_space.generation_count >= self.use_belief_after_gen:
+                for _ in range(self.local_search_attempts // 3):
+                    pos = random.randint(0, len(best_chromosome) - 1)
+                    suggested = self.belief_space.suggest_move()
 
-        tournament1 = random.sample(self.population, min(tournament_size, len(self.population)))
-        parent1 = max(tournament1, key=lambda ind: ind.fitness)
+                    test_chromosome = best_chromosome.copy()
+                    test_chromosome[pos] = suggested
 
-        tournament2 = random.sample(self.population, min(tournament_size, len(self.population)))
-        parent2 = max(tournament2, key=lambda ind: ind.fitness)
+                    new_fitness = self.fitness(test_chromosome, start_pos)
 
-        return parent1, parent2
+                    if new_fitness > best_fitness:
+                        best_fitness = new_fitness
+                        best_chromosome = test_chromosome.copy()
+                        improvement_found = True
 
-    def crossover(self, parent1: Individual, parent2: Individual) -> Individual:
-        min_path_len = min(len(parent1.path), len(parent2.path))
+        return best_chromosome
 
-        if min_path_len < 3:
-            return self.create_individual()
-
-        if self.generation_count > 15 and self.belief_space.best_solution and random.random() < 0.3:
-            best_path = self.belief_space.best_path
-            inject_size = max(3, min(len(best_path) // 4, min_path_len // 2))
-            crossover_point = random.randint(1, min_path_len - inject_size)
-
-            child = Individual(self.board_size, self.start_pos)
-            child.path = parent1.path[:crossover_point].copy()
-            child.visited = set(child.path)
-
-            for pos in best_path[crossover_point:crossover_point + inject_size]:
-                if pos not in child.visited:
-                    x1, y1 = child.path[-1]
-                    x2, y2 = pos
-                    dx, dy = abs(x2 - x1), abs(y2 - y1)
-                    if (dx == 2 and dy == 1) or (dx == 1 and dy == 2):
-                        child.add_move(pos)
-        else:
-            segment_size = max(2, min_path_len // 3)
-            crossover_point = random.randint(1, min_path_len - segment_size)
-
-            child = Individual(self.board_size, self.start_pos)
-            child.path = parent1.path[:crossover_point].copy()
-            child.visited = set(child.path)
-
-            for pos in parent2.path[crossover_point:crossover_point + segment_size]:
-                if pos not in child.visited:
-                    x1, y1 = child.path[-1]
-                    x2, y2 = pos
-                    dx, dy = abs(x2 - x1), abs(y2 - y1)
-                    if (dx == 2 and dy == 1) or (dx == 1 and dy == 2):
-                        child.add_move(pos)
-
-        current_pos = child.path[-1]
-        max_moves = self.board_size ** 2
-
-        while len(child.path) < max_moves:
-            valid_moves = self.get_valid_moves(current_pos, child.visited)
-            if not valid_moves:
-                break
-
-            if self.generation_count > 10:
-                scored_moves = []
-                for move in valid_moves:
-                    degree = self.get_degree(move, child.visited | {move})
-                    quality_bonus = 2 if self.belief_space.is_good_transition(current_pos, move) else 0
-                    score = degree * 2 + quality_bonus + random.random() * 0.3
-                    scored_moves.append((move, score))
-
-                scored_moves.sort(key=lambda x: x[1])
-                next_pos = scored_moves[0][0] if random.random() < 0.8 else random.choice(scored_moves)[0]
-            else:
-                degrees = [(move, self.get_degree(move, child.visited | {move})) for move in valid_moves]
-                degrees.sort(key=lambda x: x[1])
-                next_pos = degrees[0][0] if random.random() < 0.7 else random.choice(valid_moves)
-
-            child.add_move(next_pos)
-            current_pos = next_pos
-
-        child.fitness = self.calculate_fitness(child)
-        return child
-
-    def mutate(self, individual: Individual):
+    def mutate(self, chromosome: List[int]) -> List[int]:
+        # Adaptive mutation rate based on stagnation
         stagnation = self.belief_space.get_stagnation_level()
-        dynamic_rate = self.base_mutation_rate + (stagnation * 0.3)
+        dynamic_rate = self.mutation_rate + (stagnation * 0.3)
 
-        if random.random() > dynamic_rate or len(individual.path) < 3:
-            return
+        if random.random() > dynamic_rate:
+            return chromosome
 
-        mutation_point = random.randint(1, len(individual.path) - 1)
+        mutated = chromosome.copy()
 
-        individual.path = individual.path[:mutation_point]
-        individual.visited = set(individual.path)
+        # More mutations when stagnating
+        num_mutations = random.randint(1, 3) if stagnation > 0.5 else random.randint(1, 2)
 
-        current_pos = individual.path[-1]
-        max_moves = self.board_size ** 2
+        use_belief = self.belief_space.generation_count >= self.use_belief_after_gen
 
-        while len(individual.path) < max_moves:
-            valid_moves = self.get_valid_moves(current_pos, individual.visited)
-            if not valid_moves:
-                break
+        for _ in range(num_mutations):
+            pos = random.randint(0, len(mutated) - 1)
 
-            if self.generation_count > 10 and random.random() < 0.7:
-                suggested = self.belief_space.get_suggested_move(current_pos, individual.visited)
-                if suggested:
-                    next_pos = suggested
+            if use_belief and random.random() < 0.7:
+                # Use belief space suggestion
+                suggested = self.belief_space.suggest_move()
+                if pos > 0 and mutated[pos - 1] != suggested:
+                    mutated[pos] = suggested
                 else:
-                    scored_moves = []
-                    for move in valid_moves:
-                        degree = self.get_degree(move, individual.visited | {move})
-                        quality_bonus = 2 if self.belief_space.is_good_transition(current_pos, move) else 0
-                        score = degree * 2 + quality_bonus
-                        scored_moves.append((move, score))
-
-                    scored_moves.sort(key=lambda x: x[1])
-                    next_pos = scored_moves[0][0] if random.random() < 0.75 else random.choice(scored_moves)[0]
+                    mutated[pos] = random.randint(0, 7)
             else:
-                degrees = [(move, self.get_degree(move, individual.visited | {move})) for move in valid_moves]
-                degrees.sort(key=lambda x: x[1])
-                next_pos = degrees[0][0] if random.random() < 0.65 else random.choice(valid_moves)
+                # Random or smart mutation
+                if random.random() < 0.2:
+                    mutated[pos] = random.randint(0, 7)
+                else:
+                    # Prefer moves with variety
+                    move_scores = []
+                    for move_idx in range(8):
+                        if pos > 0 and mutated[pos - 1] == move_idx:
+                            continue
+                        move_scores.append((move_idx, random.random() + (move_idx % 3)))
 
-            individual.add_move(next_pos)
-            current_pos = next_pos
+                    move_scores.sort(key=lambda x: x[1], reverse=True)
+                    mutated[pos] = move_scores[0][0] if move_scores else random.randint(0, 7)
 
-        individual.fitness = self.calculate_fitness(individual)
+        self.mutation_count += 1
+        return mutated
 
-    def local_search(self, individual: Individual):
-        if len(individual.path) < 5:
-            return
+    def evolve(self, start_pos: Tuple[int, int]) -> Tuple[bool, List[Tuple[int, int]]]:
+        population = self.initialize_population()
+        self.generation_best_fitness = []
+        self.generation_avg_fitness = []
+        self.population_diversity = []
+        self.mutation_count = 0
+        self.crossover_count = 0
+        self.belief_space = AdvancedBeliefSpace(self.n)
 
-        original_path = individual.path.copy()
-        original_fitness = individual.fitness
-        best_fitness = original_fitness
+        # Verbose: Initial configuration output
+        if self.verbose:
+            print(f"\n{'='*70}")
+            print(f"LEVEL 4: ADVANCED CULTURAL ALGORITHM")
+            print(f"{'='*70}")
+            print(f"Board Size: {self.n}x{self.n} ({self.n*self.n} squares)")
+            print(f"Start Position: {start_pos}")
+            print(f"Population Size: {self.population_size}")
+            print(f"Generations: {self.generations}")
+            print(f"Mutation Rate: {self.mutation_rate:.2%} (adaptive)")
+            print(f"Elitism: Top {self.elitism_count} preserved")
+            print(f"\nLevel 4 Advanced Features:")
+            print(f"  • Advanced Belief Space: Active")
+            print(f"  • Transition Quality Tracking: Enabled")
+            print(f"  • Pattern Recognition: 3-move sequences")
+            print(f"  • Stagnation Detection: Enabled")
+            print(f"  • Adaptive Mutation: Increases when stuck")
+            print(f"  • Local Search: Every {self.local_search_freq} generations")
+            print(f"  • Enhanced Fitness: Consecutive moves, low-degree bonus")
+            print(f"{'='*70}\n")
 
-        for _ in range(5):
-            i = random.randint(1, len(individual.path) - 4)
-            j = random.randint(i + 2, min(i + 5, len(individual.path) - 1))
+        for generation in range(self.generations):
+            decoded_paths = [self.decode(chrom, start_pos) for chrom in population]
+            fitness_scores = [self.fitness(chrom, start_pos) for chrom in population]
 
-            individual.path[i], individual.path[j] = individual.path[j], individual.path[i]
-            new_fitness = self.calculate_fitness(individual)
+            # Update advanced belief space
+            self.belief_space.update(population, fitness_scores, decoded_paths)
 
-            if new_fitness > best_fitness:
-                best_fitness = new_fitness
-                original_path = individual.path.copy()
-            else:
-                individual.path = original_path.copy()
+            best_idx = fitness_scores.index(max(fitness_scores))
+            best_fitness = fitness_scores[best_idx]
+            avg_fitness = sum(fitness_scores) / len(fitness_scores)
+            diversity = self._calculate_diversity(population)
 
-        individual.fitness = best_fitness
-        individual.visited = set(individual.path)
+            self.generation_best_fitness.append(best_fitness)
+            self.generation_avg_fitness.append(avg_fitness)
+            self.population_diversity.append(diversity)
 
-    def evolve_generation(self):
-        new_population = []
+            if best_fitness > self.best_fitness:
+                self.best_fitness = best_fitness
+                self.best_path = decoded_paths[best_idx]
 
-        elite_size = max(2, self.population_size // 10)
-        sorted_population = sorted(self.population, key=lambda ind: ind.fitness, reverse=True)
-        new_population.extend(sorted_population[:elite_size])
+            # Apply local search to elite individuals periodically
+            if generation > 20 and generation % self.local_search_freq == 0:
+                # Local search on top 3 individuals (increased from 2)
+                sorted_indices = sorted(range(len(fitness_scores)), key=lambda i: fitness_scores[i], reverse=True)
+                for i in range(min(3, len(sorted_indices))):
+                    idx = sorted_indices[i]
+                    improved_chrom = self.local_search(population[idx], start_pos)
+                    population[idx] = improved_chrom
+                    fitness_scores[idx] = self.fitness(improved_chrom, start_pos)
 
-        if self.generation_count > 20 and self.generation_count % 10 == 0:
-            for i in range(min(2, len(sorted_population))):
-                self.local_search(sorted_population[i])
+            # Diversity injection: prevent premature convergence
+            if generation > 30 and generation % self.diversity_injection_freq == 0:
+                # Check if diversity is too low
+                if diversity < 0.3:
+                    # Replace bottom 20% of population with fresh random individuals
+                    sorted_indices = sorted(range(len(fitness_scores)), key=lambda i: fitness_scores[i], reverse=True)
+                    num_to_replace = max(1, len(population) // 5)
 
-        while len(new_population) < self.population_size:
-            parent1, parent2 = self.select_parents()
-            offspring = self.crossover(parent1, parent2)
-            self.mutate(offspring)
-            new_population.append(offspring)
+                    for i in range(num_to_replace):
+                        idx = sorted_indices[-(i + 1)]  # Start from worst individuals
+                        population[idx] = [random.randint(0, 7) for _ in range(self.n * self.n * 2)]
+                        fitness_scores[idx] = self.fitness(population[idx], start_pos)
 
-        self.population = new_population
+            # Verbose: Show progress every 10 generations
+            if self.verbose and generation % 10 == 0:
+                unique_squares = len(set(self.best_path))
 
-    def solve(self) -> Tuple[bool, List[Tuple[int, int]], dict]:
-        self.start_time = time.time()
-        self.generation_count = 0
-        self.timed_out = False
+                # Calculate belief space statistics
+                stagnation = self.belief_space.get_stagnation_level()
+                dynamic_mutation_rate = self.mutation_rate + (stagnation * 0.3)
 
-        self.initialize_population()
+                total_move_usage = sum(self.belief_space.move_usage.values())
+                num_patterns = len(self.belief_space.good_patterns)
+                num_transitions = len(self.belief_space.transition_quality)
+                num_dangerous = len(self.belief_space.dangerous_transitions)
 
-        target_fitness = self.board_size ** 2 * 20 + 500
+                print(f"\nGeneration {generation:3d}/{self.generations}")
+                print(f"  Fitness: Best={best_fitness:6.1f} | Avg={avg_fitness:6.1f} | Min={min(fitness_scores):6.1f} | Max={max(fitness_scores):6.1f}")
+                print(f"  Coverage: {unique_squares}/{self.n*self.n} squares ({unique_squares/(self.n*self.n)*100:.1f}%)")
+                print(f"  Path Length: {len(self.best_path)} moves")
+                print(f"  Level 4 Advanced Metrics:")
+                print(f"    - Stagnation Level: {stagnation:.2f} {'⚠ HIGH' if stagnation > 0.7 else ''}")
+                print(f"    - Dynamic Mutation Rate: {dynamic_mutation_rate:.2%}")
+                print(f"    - Good Patterns Learned: {num_patterns}")
+                print(f"    - Transitions Tracked: {num_transitions}")
+                print(f"    - Dangerous Transitions: {num_dangerous}")
+                print(f"    - Population Diversity: {diversity:.2f} {'⚠ LOW - Injecting diversity' if diversity < 0.3 else '✓ HEALTHY'}")
+                if generation > 20 and generation % self.local_search_freq == 0:
+                    print(f"    - Local Search: ✓ Applied this generation (top 3 individuals)")
+                if generation > 30 and generation % self.diversity_injection_freq == 0 and diversity < 0.3:
+                    print(f"    - Diversity Injection: ✓ Replaced bottom 20% with fresh individuals")
 
-        for generation in range(self.max_generations):
-            if time.time() - self.start_time > self.timeout:
-                self.timed_out = True
-                break
+            parents = self.select_parents(population, fitness_scores)
 
-            self.generation_count = generation + 1
+            new_population = []
+            sorted_indices = sorted(range(len(fitness_scores)), key=lambda i: fitness_scores[i], reverse=True)
+            for i in sorted_indices[:self.elitism_count]:
+                new_population.append(population[i].copy())
 
-            self.belief_space.update(self.population)
+            while len(new_population) < self.population_size:
+                p1 = random.choice(parents)
+                p2 = random.choice(parents)
+                child1, child2 = self.crossover(p1, p2)
+                child1 = self.mutate(child1)
+                child2 = self.mutate(child2)
+                new_population.append(child1)
+                if len(new_population) < self.population_size:
+                    new_population.append(child2)
 
-            best_individual = max(self.population, key=lambda ind: ind.fitness)
+            population = new_population
 
-            if self.progress_callback and generation % 10 == 0:
-                progress = (best_individual.fitness / target_fitness) * 100
-                self.progress_callback(
-                    min(progress, 99),
-                    f"Generation {generation}: Best fitness = {best_individual.fitness:.1f}"
-                )
+        # Verbose: Final summary with advanced belief space analysis
+        if self.verbose:
+            target_squares = self.n * self.n
+            unique_visited = len(set(self.best_path))
+            success = unique_visited == target_squares
 
-            if len(set(best_individual.path)) == self.board_size ** 2:
-                self.best_solution = best_individual
-                break
+            print(f"\n{'='*70}")
+            print(f"LEVEL 4 FINAL RESULTS")
+            print(f"{'='*70}")
+            print(f"Success: {'✓ Complete Tour!' if success else '✗ Partial Tour'}")
+            print(f"Coverage: {unique_visited}/{target_squares} squares ({unique_visited/target_squares*100:.1f}%)")
+            print(f"Path Length: {len(self.best_path)} moves")
+            print(f"Best Fitness: {self.best_fitness:.1f}")
+            print(f"Final Diversity: {self.population_diversity[-1]:.2f}")
+            print(f"Final Stagnation: {self.belief_space.get_stagnation_level():.2f}")
 
-            self.evolve_generation()
+            print(f"\nAdvanced Belief Space Summary:")
+            print(f"  Total Patterns Learned: {len(self.belief_space.good_patterns)}")
+            print(f"  Transitions Tracked: {len(self.belief_space.transition_quality)}")
+            print(f"  Dangerous Transitions Identified: {len(self.belief_space.dangerous_transitions)}")
+            print(f"  Stagnation Events: {self.belief_space.stagnation_counter}")
 
-        execution_time = time.time() - self.start_time
+            if self.belief_space.good_patterns:
+                print(f"\n  Top 3 Successful Patterns:")
+                for i, (pattern, fitness) in enumerate(self.belief_space.good_patterns[:3]):
+                    print(f"    {i+1}. Fitness {fitness:.1f}: {pattern[0]} → {pattern[1]} → {pattern[2]}")
 
-        if self.best_solution is None:
-            self.best_solution = max(self.population, key=lambda ind: ind.fitness)
+            print(f"\nTotal Genetic Operations:")
+            print(f"  - Crossovers: {self.crossover_count}")
+            print(f"  - Mutations (adaptive): {self.mutation_count}")
+            print(f"  - Local Searches Applied: {max(0, (self.generations - 20) // self.local_search_freq)}")
+            print(f"{'='*70}\n")
 
-        success = len(set(self.best_solution.path)) == self.board_size ** 2
+        target_squares = self.n * self.n
+        unique_visited = len(set(self.best_path))
+        success = unique_visited == target_squares
 
-        stats = {
-            'execution_time': execution_time,
-            'generations': self.generation_count,
-            'best_fitness': self.best_solution.fitness,
-            'solution_length': len(self.best_solution.path),
-            'coverage': len(set(self.best_solution.path)),
-            'population_size': self.population_size,
-            'timed_out': self.timed_out,
-            'algorithm': 'Cultural Algorithm'
-        }
+        return success, self.best_path
 
-        if self.timed_out:
-            stats['error'] = f'Timeout after {self.timeout} seconds'
-
-        return success, self.best_solution.path.copy(), stats
+    # Compatibility method for existing GUI code
+    def solve(self, start_x: int = 0, start_y: int = 0) -> Tuple[bool, List[Tuple[int, int]]]:
+        start_pos = (start_x, start_y)
+        return self.evolve(start_pos)

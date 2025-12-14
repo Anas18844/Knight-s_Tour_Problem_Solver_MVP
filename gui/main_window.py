@@ -297,6 +297,10 @@ class KnightTourGUI:
                 success, path = solver.solve(start_pos[0], start_pos[1])
                 end_time = datetime.now()
 
+                # Store fitness history for CA Analysis tab
+                self.ca_best_fitness = solver.generation_best_fitness
+                self.ca_avg_fitness = solver.generation_avg_fitness
+
                 stats = {
                     'algorithm': f'Simple GA (Level {level})',
                     'execution_time': (end_time - start_time).total_seconds(),
@@ -307,11 +311,16 @@ class KnightTourGUI:
 
             elif level == 2 and algorithm == "Cultural Algorithm":
                 from algorithms.cultural import EnhancedGASolver
-                solver = EnhancedGASolver(n=board_size, level=level)
+                # Enable verbose output to show progress
+                solver = EnhancedGASolver(n=board_size, level=level, verbose=True)
 
                 start_time = datetime.now()
                 success, path = solver.solve(start_pos[0], start_pos[1])
                 end_time = datetime.now()
+
+                # Store fitness history for CA Analysis tab
+                self.ca_best_fitness = solver.generation_best_fitness
+                self.ca_avg_fitness = solver.generation_avg_fitness
 
                 stats = {
                     'algorithm': f'Enhanced GA (Level {level})',
@@ -325,11 +334,16 @@ class KnightTourGUI:
 
             elif level == 3 and algorithm == "Cultural Algorithm":
                 from algorithms.cultural import CulturalGASolver
-                solver = CulturalGASolver(n=board_size, level=level)
+                # Enable verbose output to show progress
+                solver = CulturalGASolver(n=board_size, level=level, verbose=True)
 
                 start_time = datetime.now()
                 success, path = solver.solve(start_pos[0], start_pos[1])
                 end_time = datetime.now()
+
+                # Store fitness history for CA Analysis tab
+                self.ca_best_fitness = solver.generation_best_fitness
+                self.ca_avg_fitness = solver.generation_avg_fitness
 
                 stats = {
                     'algorithm': f'Cultural GA (Level {level})',
@@ -385,11 +399,31 @@ class KnightTourGUI:
                 end_time = datetime.now()
 
             elif level == 4 and algorithm == "Cultural Algorithm":
-                solver = CulturalAlgorithmSolver(board_size, start_pos,population_size=100,max_generations=500,timeout=60.0,progress_callback=progress_callback)
+                from algorithms.cultural import CulturalAlgorithmSolver
+                # Enable verbose output for Level 4 to show progress
+                solver = CulturalAlgorithmSolver(n=board_size, level=level, verbose=True)
 
                 start_time = datetime.now()
-                success, path, stats = solver.solve()
+                success, path = solver.solve(start_pos[0], start_pos[1])
                 end_time = datetime.now()
+
+                # Store fitness history for CA Analysis tab
+                self.ca_best_fitness = solver.generation_best_fitness
+                self.ca_avg_fitness = solver.generation_avg_fitness
+
+                stats = {
+                    'algorithm': f'Advanced Cultural GA (Level {level})',
+                    'execution_time': (end_time - start_time).total_seconds(),
+                    'best_fitness': solver.best_fitness,
+                    'generations': solver.generations,
+                    'belief_space_generations': solver.belief_space.generation_count,
+                    'mutation_count': solver.mutation_count,
+                    'crossover_count': solver.crossover_count,
+                    'patterns_learned': len(solver.belief_space.good_patterns),
+                    'transitions_tracked': len(solver.belief_space.transition_quality),
+                    'stagnation_level': solver.belief_space.get_stagnation_level(),
+                    'coverage_percent': 100 * len(set(path)) / (board_size * board_size) if board_size > 0 else 0
+                }
 
             else:
                 raise ValueError(f"Unsupported algorithm: {algorithm} Level {level}")
@@ -650,12 +684,17 @@ class KnightTourGUI:
             notebook.add(algo_analysis_frame, text="Algorithm Analysis")
             self._create_algorithm_analysis_tab(algo_analysis_frame)
 
-            # Tab 3: Visualization Charts
+            # Tab 3: CA Analysis (Cultural Algorithm Performance)
+            ca_analysis_frame = ttk.Frame(notebook, padding="10")
+            notebook.add(ca_analysis_frame, text="CA Analysis")
+            self._create_ca_analysis_tab(ca_analysis_frame)
+
+            # Tab 4: Visualization Charts
             charts_frame = ttk.Frame(notebook, padding="10")
             notebook.add(charts_frame, text="Visual Analysis")
             self._create_charts_tab(charts_frame)
 
-            # Tab 4: Comparison Analysis
+            # Tab 5: Comparison Analysis
             comparison_frame = ttk.Frame(notebook, padding="10")
             notebook.add(comparison_frame, text="Historical Comparison")
             self._create_comparison_tab(comparison_frame)
@@ -1010,11 +1049,179 @@ Note: Detailed Cultural Algorithm analysis will be enhanced in future versions.
 """
         return content
 
+    def _create_ca_analysis_tab(self, parent):
+        """Create Cultural Algorithm Analysis tab with fitness plots."""
+        import matplotlib.pyplot as plt
+        from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+        import numpy as np
+
+        # Title
+        title_label = ttk.Label(parent, text="Cultural Algorithm Performance Analysis",
+                               font=('Arial', 16, 'bold'))
+        title_label.pack(pady=10)
+
+        stats = self.current_stats or {}
+
+        # Check if this is a Cultural Algorithm run with generation data
+        if 'Cultural' not in stats.get('algorithm', ''):
+            # Show message if not CA
+            message_label = ttk.Label(parent,
+                                     text="This tab is only available for Cultural Algorithm runs.\nPlease run Cultural Algorithm to see CA Analysis.",
+                                     font=('Arial', 12),
+                                     justify=tk.CENTER)
+            message_label.pack(expand=True)
+            return
+
+        # Create figure with subplots for CA-specific metrics
+        fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(12, 8))
+        fig.suptitle('Cultural Algorithm Evolution Analysis', fontsize=16, fontweight='bold')
+
+        # Get generation data from solver (if available)
+        # Note: We need to store this data when solver runs
+        generations = list(range(1, stats.get('generations', 0) + 1))
+
+        # Plot 1: Best Fitness vs Generation
+        if hasattr(self, 'ca_best_fitness') and self.ca_best_fitness:
+            ax1.plot(generations[:len(self.ca_best_fitness)], self.ca_best_fitness,
+                    marker='o', linewidth=2, markersize=4, color='#e74c3c', label='Best Fitness')
+            ax1.set_title('Best Fitness vs Generation', fontweight='bold')
+            ax1.set_xlabel('Generation')
+            ax1.set_ylabel('Fitness Score')
+            ax1.grid(True, alpha=0.3)
+            ax1.legend()
+
+            # Add annotation for final best
+            final_best = self.ca_best_fitness[-1] if self.ca_best_fitness else 0
+            ax1.annotate(f'Final: {final_best:.1f}',
+                        xy=(len(self.ca_best_fitness), final_best),
+                        xytext=(10, 10), textcoords='offset points',
+                        bbox=dict(boxstyle='round,pad=0.5', fc='yellow', alpha=0.7),
+                        arrowprops=dict(arrowstyle='->', connectionstyle='arc3,rad=0'))
+        else:
+            ax1.text(0.5, 0.5, 'Best Fitness data not available\n(Run solver again to collect data)',
+                    ha='center', va='center', transform=ax1.transAxes)
+            ax1.set_title('Best Fitness vs Generation')
+
+        # Plot 2: Average Fitness vs Generation
+        if hasattr(self, 'ca_avg_fitness') and self.ca_avg_fitness:
+            ax2.plot(generations[:len(self.ca_avg_fitness)], self.ca_avg_fitness,
+                    marker='s', linewidth=2, markersize=4, color='#3498db', label='Avg Fitness')
+            ax2.set_title('Average Fitness vs Generation', fontweight='bold')
+            ax2.set_xlabel('Generation')
+            ax2.set_ylabel('Fitness Score')
+            ax2.grid(True, alpha=0.3)
+            ax2.legend()
+
+            # Add trend line
+            if len(self.ca_avg_fitness) > 1:
+                z = np.polyfit(range(len(self.ca_avg_fitness)), self.ca_avg_fitness, 1)
+                p = np.poly1d(z)
+                ax2.plot(range(1, len(self.ca_avg_fitness)+1), p(range(len(self.ca_avg_fitness))),
+                        "r--", alpha=0.5, label='Trend')
+                ax2.legend()
+        else:
+            ax2.text(0.5, 0.5, 'Average Fitness data not available\n(Run solver again to collect data)',
+                    ha='center', va='center', transform=ax2.transAxes)
+            ax2.set_title('Average Fitness vs Generation')
+
+        # Plot 3: Fitness Comparison (Best vs Avg)
+        if hasattr(self, 'ca_best_fitness') and hasattr(self, 'ca_avg_fitness') and self.ca_best_fitness and self.ca_avg_fitness:
+            min_len = min(len(self.ca_best_fitness), len(self.ca_avg_fitness))
+            ax3.plot(generations[:min_len], self.ca_best_fitness[:min_len],
+                    marker='o', linewidth=2, markersize=4, color='#e74c3c', label='Best')
+            ax3.plot(generations[:min_len], self.ca_avg_fitness[:min_len],
+                    marker='s', linewidth=2, markersize=4, color='#3498db', label='Average')
+            ax3.fill_between(generations[:min_len], self.ca_best_fitness[:min_len],
+                            self.ca_avg_fitness[:min_len], alpha=0.2, color='gray')
+            ax3.set_title('Best vs Average Fitness', fontweight='bold')
+            ax3.set_xlabel('Generation')
+            ax3.set_ylabel('Fitness Score')
+            ax3.grid(True, alpha=0.3)
+            ax3.legend()
+        else:
+            ax3.text(0.5, 0.5, 'Comparison data not available',
+                    ha='center', va='center', transform=ax3.transAxes)
+            ax3.set_title('Best vs Average Fitness')
+
+        # Plot 4: Convergence Analysis
+        if hasattr(self, 'ca_best_fitness') and self.ca_best_fitness and len(self.ca_best_fitness) > 1:
+            # Calculate improvement rate
+            improvement = []
+            for i in range(1, len(self.ca_best_fitness)):
+                if self.ca_best_fitness[i-1] != 0:
+                    imp = ((self.ca_best_fitness[i] - self.ca_best_fitness[i-1]) /
+                          abs(self.ca_best_fitness[i-1])) * 100
+                else:
+                    imp = 0
+                improvement.append(imp)
+
+            ax4.plot(generations[1:len(improvement)+1], improvement,
+                    marker='d', linewidth=2, markersize=4, color='#2ecc71')
+            ax4.axhline(y=0, color='black', linestyle='-', linewidth=0.5)
+            ax4.set_title('Fitness Improvement Rate (%)', fontweight='bold')
+            ax4.set_xlabel('Generation')
+            ax4.set_ylabel('Improvement Rate (%)')
+            ax4.grid(True, alpha=0.3)
+
+            # Highlight convergence point
+            convergence_threshold = 0.1
+            converged = False
+            for i, imp in enumerate(improvement):
+                if abs(imp) < convergence_threshold:
+                    ax4.axvline(x=i+2, color='red', linestyle='--', alpha=0.5,
+                               label=f'Convergence at Gen {i+2}')
+                    converged = True
+                    break
+            if converged:
+                ax4.legend()
+        else:
+            ax4.text(0.5, 0.5, 'Convergence data not available',
+                    ha='center', va='center', transform=ax4.transAxes)
+            ax4.set_title('Fitness Improvement Rate')
+
+        plt.tight_layout()
+
+        # Embed plot in tkinter
+        canvas = FigureCanvasTkAgg(fig, parent)
+        canvas.draw()
+        canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+
+        # Add summary statistics below the plots
+        summary_frame = ttk.LabelFrame(parent, text="Evolution Summary", padding="10")
+        summary_frame.pack(fill=tk.X, padx=10, pady=5)
+
+        summary_text = tk.Text(summary_frame, height=6, font=('Courier', 10))
+        summary_text.pack(fill=tk.X)
+
+        if hasattr(self, 'ca_best_fitness') and self.ca_best_fitness:
+            initial_best = self.ca_best_fitness[0] if self.ca_best_fitness else 0
+            final_best = self.ca_best_fitness[-1] if self.ca_best_fitness else 0
+            improvement = final_best - initial_best
+            improvement_pct = (improvement / max(1, abs(initial_best))) * 100
+
+            summary_content = f"""
+Evolution Statistics:
+  Total Generations:        {stats.get('generations', 0)}
+  Initial Best Fitness:     {initial_best:.1f}
+  Final Best Fitness:       {final_best:.1f}
+  Total Improvement:        {improvement:.1f} ({improvement_pct:+.1f}%)
+  Execution Time:           {stats.get('execution_time', 0):.4f} seconds
+  Time per Generation:      {(stats.get('execution_time', 0)/max(1, stats.get('generations', 1)))*1000:.2f} ms
+"""
+        else:
+            summary_content = "\nNo evolution data available. Please run the Cultural Algorithm solver to see detailed analysis.\n"
+
+        summary_text.insert('1.0', summary_content)
+        summary_text.config(state=tk.DISABLED)
+
     def _create_charts_tab(self, parent):
         """Create visualization charts tab."""
         import matplotlib.pyplot as plt
         from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
         import numpy as np
+
+        # Safe access to stats
+        stats = self.current_stats or {}
 
         # Create figure with subplots
         fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(12, 8))
@@ -1036,9 +1243,9 @@ Note: Detailed Cultural Algorithm analysis will be enhanced in future versions.
         # Chart 2: Performance Metrics Bar Chart
         metrics_labels = ['Execution\nTime (s)', 'Solution\nLength', 'Recursive\nCalls (÷1000)']
         metrics_values = [
-            self.current_stats.get('execution_time', 0),  # type: ignore
-            self.current_stats.get('solution_length', 0), # type: ignore
-            self.current_stats.get('recursive_calls', 0) / 1000 # type: ignore
+            stats.get('execution_time', 0),
+            stats.get('solution_length', 0),
+            stats.get('recursive_calls', 0) / 1000
         ]
         colors = ['#3498db', '#2ecc71', '#e74c3c']
         ax2.bar(metrics_labels, metrics_values, color=colors, alpha=0.7, edgecolor='black')
@@ -1049,7 +1256,7 @@ Note: Detailed Cultural Algorithm analysis will be enhanced in future versions.
         # Chart 3: Historical Performance Trend
         try:
             all_runs = self.db_manager.get_all_runs()
-            same_algo_runs = [r for r in all_runs if r['algorithm'] == self.current_stats.get('algorithm', '')] # type: ignore
+            same_algo_runs = [r for r in all_runs if r['algorithm'] == stats.get('algorithm', '')]
 
             if len(same_algo_runs) > 1:
                 runs_sorted = sorted(same_algo_runs, key=lambda r: r['id'])
@@ -1058,7 +1265,7 @@ Note: Detailed Cultural Algorithm analysis will be enhanced in future versions.
 
                 ax3.plot(run_numbers, times, marker='o', linewidth=2, markersize=6, color='#9b59b6')
                 ax3.axhline(y=np.mean(times), color='r', linestyle='--', label=f'Average: {np.mean(times):.4f}s')
-                ax3.set_title(f'Performance Trend - {self.current_stats.get("algorithm", "N/A")}') # type: ignore
+                ax3.set_title(f'Performance Trend - {stats.get("algorithm", "N/A")}')
                 ax3.set_xlabel('Run Number')
                 ax3.set_ylabel('Execution Time (s)')
                 ax3.legend()
