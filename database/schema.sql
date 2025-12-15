@@ -2,6 +2,7 @@
 CREATE TABLE IF NOT EXISTS runs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     algorithm TEXT NOT NULL,
+    level INTEGER,
     board_size INTEGER NOT NULL,
     execution_time REAL NOT NULL,
     steps INTEGER NOT NULL,

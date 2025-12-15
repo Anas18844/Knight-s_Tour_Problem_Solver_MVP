@@ -33,15 +33,16 @@ class DatabaseManager:
             print(f"Schema file not found at: {schema_path}")
             raise
 
-    def insert_run(self, algorithm: str, board_size: int, execution_time: float,steps: int, result: str, solution_path: List[Tuple[int, int]],start_position: Tuple[int, int]) -> int:
+    def insert_run(self, algorithm: str, level: int, board_size: int, execution_time: float,steps: int, result: str, solution_path: List[Tuple[int, int]],start_position: Tuple[int, int]) -> int:
         try:
             cursor = self.connection.cursor()
             cursor.execute("""
-                INSERT INTO runs (algorithm, board_size, execution_time, steps,
+                INSERT INTO runs (algorithm, level, board_size, execution_time, steps,
                                 result, solution_path, start_position)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """, (
                 algorithm,
+                level,
                 board_size,
                 execution_time,
                 steps,
