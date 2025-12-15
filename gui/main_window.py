@@ -36,6 +36,7 @@ class KnightTourGUI:
         self.current_solution: Optional[List[Tuple[int, int]]] = None
         self.current_stats: Optional[Dict[str, Any]] = None
         self.is_running = False
+        self.notebook = None
 
         # Threading
         self.solver_thread = None
@@ -87,6 +88,7 @@ class KnightTourGUI:
             row=row, column=0, sticky="w", pady=5)
         algo_combo = ttk.Combobox(parent, textvariable=self.current_algorithm,values=["Backtracking", "Cultural Algorithm"],state="readonly", width=20)
         algo_combo.grid(row=row, column=1, sticky="w", pady=5)
+        algo_combo.bind("<<ComboboxSelected>>", self._on_algorithm_change)
         row += 1
 
         # Algorithm Level selection
@@ -171,6 +173,14 @@ class KnightTourGUI:
         ttk.Button(button_frame, text="View History",command=self._view_history, width=22).grid(row=1, column=0, padx=5, pady=5)
 
         ttk.Button(button_frame, text="Help",command=self._show_help, width=22).grid(row=2, column=0, padx=5, pady=5)
+
+    def _on_algorithm_change(self, event=None):
+        if self.notebook:
+            # Find the top-level window (dashboard) that contains the notebook
+            dashboard = self.notebook.winfo_toplevel()
+            dashboard.destroy()
+            self.notebook = None  # Reset the notebook reference
+            self._show_dashboard()
 
     def _create_board_panel(self, parent):
         # Title
@@ -259,6 +269,7 @@ class KnightTourGUI:
                     'execution_time': (end_time - start_time).total_seconds(),
                     'total_moves': solver.total_moves,
                     'dead_ends_hit': solver.dead_ends_hit,
+                    'solution_length': len(path),
                     'coverage_percent': 100 * len(path) / (board_size * board_size) if board_size > 0 else 0
                 }
 
@@ -275,6 +286,7 @@ class KnightTourGUI:
                     'execution_time': (end_time - start_time).total_seconds(),
                     'total_moves': solver.total_moves,
                     'dead_ends_hit': solver.dead_ends_hit,
+                    'solution_length': len(path),
                     'coverage_percent': 100 * len(path) / (board_size * board_size) if board_size > 0 else 0
                 }
 
@@ -291,6 +303,7 @@ class KnightTourGUI:
                     'execution_time': (end_time - start_time).total_seconds(),
                     'total_moves': solver.total_moves,
                     'dead_ends_hit': solver.dead_ends_hit,
+                    'solution_length': len(path),
                     'coverage_percent': 100 * len(path) / (board_size * board_size) if board_size > 0 else 0
                 }
 
@@ -311,6 +324,8 @@ class KnightTourGUI:
                     'execution_time': (end_time - start_time).total_seconds(),
                     'best_fitness': solver.best_fitness,
                     'generations': solver.generations,
+                    'population_size': solver.population_size,
+                    'solution_length': len(path),
                     'coverage_percent': 100 * len(set(path)) / (board_size * board_size) if board_size > 0 else 0
                 }
 
@@ -332,8 +347,10 @@ class KnightTourGUI:
                     'execution_time': (end_time - start_time).total_seconds(),
                     'best_fitness': solver.best_fitness,
                     'generations': solver.generations,
+                    'population_size': solver.population_size,
                     'mutation_count': solver.mutation_count,
                     'crossover_count': solver.crossover_count,
+                    'solution_length': len(path),
                     'coverage_percent': 100 * len(set(path)) / (board_size * board_size) if board_size > 0 else 0
                 }
 
@@ -355,9 +372,11 @@ class KnightTourGUI:
                     'execution_time': (end_time - start_time).total_seconds(),
                     'best_fitness': solver.best_fitness,
                     'generations': solver.generations,
+                    'population_size': solver.population_size,
                     'belief_space_generations': solver.belief_space.generation_count,
                     'mutation_count': solver.mutation_count,
                     'crossover_count': solver.crossover_count,
+                    'solution_length': len(path),
                     'coverage_percent': 100 * len(set(path)) / (board_size * board_size) if board_size > 0 else 0
                 }
 
@@ -421,12 +440,14 @@ class KnightTourGUI:
                     'execution_time': (end_time - start_time).total_seconds(),
                     'best_fitness': solver.best_fitness,
                     'generations': solver.generations,
+                    'population_size': solver.population_size,
                     'belief_space_generations': solver.belief_space.generation_count,
                     'mutation_count': solver.mutation_count,
                     'crossover_count': solver.crossover_count,
                     'patterns_learned': len(solver.belief_space.good_patterns),
                     'transitions_tracked': len(solver.belief_space.transition_quality),
                     'stagnation_level': solver.belief_space.get_stagnation_level(),
+                    'solution_length': len(path),
                     'coverage_percent': 100 * len(set(path)) / (board_size * board_size) if board_size > 0 else 0
                 }
 
@@ -515,8 +536,11 @@ class KnightTourGUI:
 
     def _save_to_database(self, success, path, stats, start_time):
         try:
+            level_str = self.algorithm_level.get()  # e.g., "Level 0"
+            level = int(level_str.split()[-1])
             run_id = self.db_manager.insert_run(
                 algorithm=stats.get('algorithm', 'Unknown'),
+                level=level,
                 board_size=self.board_size.get(),
                 execution_time=stats.get('execution_time', 0),
                 steps=len(path),
@@ -662,6 +686,206 @@ class KnightTourGUI:
         except Exception as e:
             messagebox.showerror("Stats Error", f"Failed to load stats:\n{e}")
 
+    def _create_dashboard_tabs(self, notebook):
+        # Tab 1: Performance Metrics
+        metrics_frame = ttk.Frame(notebook, padding="10")
+        notebook.add(metrics_frame, text="Performance Metrics")
+        self._create_metrics_tab(metrics_frame)
+
+        # Tab 2: Algorithm Analysis (NEW - Detailed technical analysis)
+        algo_analysis_frame = ttk.Frame(notebook, padding="10")
+        notebook.add(algo_analysis_frame, text="Algorithm Analysis")
+        self._create_algorithm_analysis_tab(algo_analysis_frame)
+
+        # Conditionally add algorithm-specific tabs
+        if self.current_algorithm.get() == "Backtracking":
+            charts_frame = ttk.Frame(notebook, padding="10")
+            notebook.add(charts_frame, text="Visual Analysis")
+            self._create_charts_tab(charts_frame)
+        elif self.current_algorithm.get() == "Cultural Algorithm":
+            ca_analysis_frame = ttk.Frame(notebook, padding="10")
+            notebook.add(ca_analysis_frame, text="CA Analysis")
+            self._create_ca_analysis_tab(ca_analysis_frame)
+
+        # Tab 5: Comparison Analysis
+        comparison_frame = ttk.Frame(notebook, padding="10")
+        notebook.add(comparison_frame, text="Historical Comparison")
+        self._create_comparison_tab(comparison_frame)
+
+        # Tab 6: Algorithm Details
+        details_frame = ttk.Frame(notebook, padding="10")
+        notebook.add(details_frame, text="Algorithm Details")
+        self._create_details_tab(details_frame)
+
+    def _create_ca_analysis_tab(self, parent):
+        """Create Cultural Algorithm Analysis tab with fitness plots."""
+        import matplotlib.pyplot as plt
+        from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+        import numpy as np
+
+        # Title
+        title_label = ttk.Label(parent, text="Cultural Algorithm Performance Analysis",
+                               font=('Arial', 16, 'bold'))
+        title_label.pack(pady=10)
+
+        stats = self.current_stats or {}
+
+        # Check if this is a Cultural Algorithm run with generation data
+        if 'Cultural' not in stats.get('algorithm', ''):
+            # Show message if not CA
+            message_label = ttk.Label(parent,
+                                     text="This tab is only available for Cultural Algorithm runs.\nPlease run Cultural Algorithm to see CA Analysis.",
+                                     font=('Arial', 12),
+                                     justify=tk.CENTER)
+            message_label.pack(expand=True)
+            return
+
+        # Create figure with subplots for CA-specific metrics
+        fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(12, 8))
+        fig.suptitle('Cultural Algorithm Evolution Analysis', fontsize=16, fontweight='bold')
+
+        # Get generation data from solver (if available)
+        # Note: We need to store this data when solver runs
+        generations = list(range(1, stats.get('generations', 0) + 1))
+
+        # Plot 1: Best Fitness vs Generation
+        if hasattr(self, 'ca_best_fitness') and self.ca_best_fitness:
+            ax1.plot(generations[:len(self.ca_best_fitness)], self.ca_best_fitness,
+                    marker='o', linewidth=2, markersize=4, color='#e74c3c', label='Best Fitness')
+            ax1.set_title('Best Fitness vs Generation', fontweight='bold')
+            ax1.set_xlabel('Generation')
+            ax1.set_ylabel('Fitness Score')
+            ax1.grid(True, alpha=0.3)
+            ax1.legend()
+
+            # Add annotation for final best
+            final_best = self.ca_best_fitness[-1] if self.ca_best_fitness else 0
+            ax1.annotate(f'Final: {final_best:.1f}',
+                        xy=(len(self.ca_best_fitness), final_best),
+                        xytext=(10, 10), textcoords='offset points',
+                        bbox=dict(boxstyle='round,pad=0.5', fc='yellow', alpha=0.7),
+                        arrowprops=dict(arrowstyle='->', connectionstyle='arc3,rad=0'))
+        else:
+            ax1.text(0.5, 0.5, 'Best Fitness data not available\n(Run solver again to collect data)',
+                    ha='center', va='center', transform=ax1.transAxes)
+            ax1.set_title('Best Fitness vs Generation')
+
+        # Plot 2: Average Fitness vs Generation
+        if hasattr(self, 'ca_avg_fitness') and self.ca_avg_fitness:
+            ax2.plot(generations[:len(self.ca_avg_fitness)], self.ca_avg_fitness,
+                    marker='s', linewidth=2, markersize=4, color='#3498db', label='Avg Fitness')
+            ax2.set_title('Average Fitness vs Generation', fontweight='bold')
+            ax2.set_xlabel('Generation')
+            ax2.set_ylabel('Fitness Score')
+            ax2.grid(True, alpha=0.3)
+            ax2.legend()
+
+            # Add trend line
+            if len(self.ca_avg_fitness) > 1:
+                z = np.polyfit(range(len(self.ca_avg_fitness)), self.ca_avg_fitness, 1)
+                p = np.poly1d(z)
+                ax2.plot(range(1, len(self.ca_avg_fitness)+1), p(range(len(self.ca_avg_fitness))),
+                        "r--", alpha=0.5, label='Trend')
+                ax2.legend()
+        else:
+            ax2.text(0.5, 0.5, 'Average Fitness data not available\n(Run solver again to collect data)',
+                    ha='center', va='center', transform=ax2.transAxes)
+            ax2.set_title('Average Fitness vs Generation')
+
+        # Plot 3: Fitness Comparison (Best vs Avg)
+        if hasattr(self, 'ca_best_fitness') and hasattr(self, 'ca_avg_fitness') and self.ca_best_fitness and self.ca_avg_fitness:
+            min_len = min(len(self.ca_best_fitness), len(self.ca_avg_fitness))
+            ax3.plot(generations[:min_len], self.ca_best_fitness[:min_len],
+                    marker='o', linewidth=2, markersize=4, color='#e74c3c', label='Best')
+            ax3.plot(generations[:min_len], self.ca_avg_fitness[:min_len],
+                    marker='s', linewidth=2, markersize=4, color='#3498db', label='Average')
+            ax3.fill_between(generations[:min_len], self.ca_best_fitness[:min_len],
+                            self.ca_avg_fitness[:min_len], alpha=0.2, color='gray')
+            ax3.set_title('Best vs Average Fitness', fontweight='bold')
+            ax3.set_xlabel('Generation')
+            ax3.set_ylabel('Fitness Score')
+            ax3.grid(True, alpha=0.3)
+            ax3.legend()
+        else:
+            ax3.text(0.5, 0.5, 'Comparison data not available',
+                    ha='center', va='center', transform=ax3.transAxes)
+            ax3.set_title('Best vs Average Fitness')
+
+        # Plot 4: Convergence Analysis
+        if hasattr(self, 'ca_best_fitness') and self.ca_best_fitness and len(self.ca_best_fitness) > 1:
+            # Calculate improvement rate
+            improvement = []
+            for i in range(1, len(self.ca_best_fitness)):
+                if self.ca_best_fitness[i-1] != 0:
+                    imp = ((self.ca_best_fitness[i] - self.ca_best_fitness[i-1]) /
+                          abs(self.ca_best_fitness[i-1])) * 100
+                else:
+                    imp = 0
+                improvement.append(imp)
+
+            ax4.plot(generations[1:len(improvement)+1], improvement,
+                    marker='d', linewidth=2, markersize=4, color='#2ecc71')
+            ax4.axhline(y=0, color='black', linestyle='-', linewidth=0.5)
+            ax4.set_title('Fitness Improvement Rate (%)', fontweight='bold')
+            ax4.set_xlabel('Generation')
+            ax4.set_ylabel('Improvement Rate (%)')
+            ax4.grid(True, alpha=0.3)
+
+            # Highlight convergence point
+            convergence_threshold = 0.1
+            converged = False
+            for i, imp in enumerate(improvement):
+                if abs(imp) < convergence_threshold:
+                    ax4.axvline(x=i+2, color='red', linestyle='--', alpha=0.5,
+                               label=f'Convergence at Gen {i+2}')
+                    converged = True
+                    break
+            if converged:
+                ax4.legend()
+        else:
+            ax4.text(0.5, 0.5, 'Convergence data not available',
+                    ha='center', va='center', transform=ax4.transAxes)
+            ax4.set_title('Fitness Improvement Rate')
+
+        plt.tight_layout()
+
+        # Embed plot in tkinter
+        canvas = FigureCanvasTkAgg(fig, parent)
+        canvas.draw()
+        canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+
+        # Add summary statistics below the plots
+        summary_frame = ttk.LabelFrame(parent, text="Evolution Summary", padding="10")
+        summary_frame.pack(fill=tk.X, padx=10, pady=5)
+
+        summary_text = tk.Text(summary_frame, height=6, font=('Courier', 10))
+        summary_text.pack(fill=tk.X)
+
+        if hasattr(self, 'ca_best_fitness') and self.ca_best_fitness:
+            initial_best = self.ca_best_fitness[0] if self.ca_best_fitness else 0
+            final_best = self.ca_best_fitness[-1] if self.ca_best_fitness else 0
+            improvement = final_best - initial_best
+            improvement_pct = (improvement / max(1, abs(initial_best))) * 100
+
+            summary_content = f"""
+Evolution Statistics:
+  Total Generations:        {stats.get('generations', 0)}
+  Initial Best Fitness:     {initial_best:.1f}
+  Final Best Fitness:       {final_best:.1f}
+  Total Improvement:        {improvement:.1f} ({improvement_pct:+.1f}%)
+  Execution Time:           {stats.get('execution_time', 0):.4f} seconds
+  Time per Generation:      {(stats.get('execution_time', 0)/max(1, stats.get('generations', 1)))*1000:.2f} ms
+"""
+        else:
+            summary_content = "\nNo evolution data available. Please run the Cultural Algorithm solver to see detailed analysis.\n"
+
+        summary_text.insert('1.0', summary_content)
+        summary_text.config(state=tk.DISABLED)
+
+
+    def _on_dashboard_close(self, event=None):
+        self.notebook = None
+
     def _show_dashboard(self):
         """Show comprehensive dashboard with algorithm analysis."""
         if not self.current_solution or not self.current_stats:
@@ -669,45 +893,26 @@ class KnightTourGUI:
             return
 
         try:
+            # If a dashboard is already open, just bring it to the front
+            if self.notebook and self.notebook.winfo_exists():
+                dashboard = self.notebook.winfo_toplevel()
+                dashboard.deiconify()
+                dashboard.lift()
+                dashboard.focus_set()
+                return
+
             # Create dashboard window
             dashboard = tk.Toplevel(self.root)
             dashboard.title("Algorithm Analysis Dashboard")
             dashboard.geometry("1200x800")
             dashboard.resizable(True, True)
+            dashboard.bind("<Destroy>", self._on_dashboard_close)
 
             # Create notebook for tabs
-            notebook = ttk.Notebook(dashboard)
-            notebook.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+            self.notebook = ttk.Notebook(dashboard)
+            self.notebook.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
 
-            # Tab 1: Performance Metrics
-            metrics_frame = ttk.Frame(notebook, padding="10")
-            notebook.add(metrics_frame, text="Performance Metrics")
-            self._create_metrics_tab(metrics_frame)
-
-            # Tab 2: Algorithm Analysis (NEW - Detailed technical analysis)
-            algo_analysis_frame = ttk.Frame(notebook, padding="10")
-            notebook.add(algo_analysis_frame, text="Algorithm Analysis")
-            self._create_algorithm_analysis_tab(algo_analysis_frame)
-
-            # Tab 3: CA Analysis (Cultural Algorithm Performance)
-            ca_analysis_frame = ttk.Frame(notebook, padding="10")
-            notebook.add(ca_analysis_frame, text="CA Analysis")
-            self._create_ca_analysis_tab(ca_analysis_frame)
-
-            # Tab 4: Visualization Charts
-            charts_frame = ttk.Frame(notebook, padding="10")
-            notebook.add(charts_frame, text="Visual Analysis")
-            self._create_charts_tab(charts_frame)
-
-            # Tab 5: Comparison Analysis
-            comparison_frame = ttk.Frame(notebook, padding="10")
-            notebook.add(comparison_frame, text="Historical Comparison")
-            self._create_comparison_tab(comparison_frame)
-
-            # Tab 5: Algorithm Details
-            details_frame = ttk.Frame(notebook, padding="10")
-            notebook.add(details_frame, text="Algorithm Details")
-            self._create_details_tab(details_frame)
+            self._create_dashboard_tabs(self.notebook)
 
         except Exception as e:
             messagebox.showerror("Dashboard Error", f"Failed to create dashboard:\n{e}")
@@ -811,7 +1016,7 @@ Moves per Second:    {1/time_per_move if time_per_move > 0 else 0:.2f}
             perf_content += f"  Space Complexity:  O({n}²) for board + O({n}²) recursion stack\n"
             perf_content += f"  Memory Usage:      ~{n*n*8 + n*n*8} bytes ({(n*n*8 + n*n*8)/1024:.2f} KB)\n"
 
-        elif 'Cultural Algorithm' in algorithm_name:
+        elif 'GA' in algorithm_name or 'Cultural' in algorithm_name:
             pop_size = stats.get('population_size', 100)
             gens = stats.get('generations', 0)
             perf_content += f"  Time Complexity:   O(G × P × {n}²) where G={gens}, P={pop_size}\n"
@@ -1054,170 +1259,7 @@ Note: Detailed Cultural Algorithm analysis will be enhanced in future versions.
 """
         return content
 
-    def _create_ca_analysis_tab(self, parent):
-        """Create Cultural Algorithm Analysis tab with fitness plots."""
-        import matplotlib.pyplot as plt
-        from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-        import numpy as np
 
-        # Title
-        title_label = ttk.Label(parent, text="Cultural Algorithm Performance Analysis",
-                               font=('Arial', 16, 'bold'))
-        title_label.pack(pady=10)
-
-        stats = self.current_stats or {}
-
-        # Check if this is a Cultural Algorithm run with generation data
-        if 'Cultural' not in stats.get('algorithm', ''):
-            # Show message if not CA
-            message_label = ttk.Label(parent,
-                                     text="This tab is only available for Cultural Algorithm runs.\nPlease run Cultural Algorithm to see CA Analysis.",
-                                     font=('Arial', 12),
-                                     justify=tk.CENTER)
-            message_label.pack(expand=True)
-            return
-
-        # Create figure with subplots for CA-specific metrics
-        fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(12, 8))
-        fig.suptitle('Cultural Algorithm Evolution Analysis', fontsize=16, fontweight='bold')
-
-        # Get generation data from solver (if available)
-        # Note: We need to store this data when solver runs
-        generations = list(range(1, stats.get('generations', 0) + 1))
-
-        # Plot 1: Best Fitness vs Generation
-        if hasattr(self, 'ca_best_fitness') and self.ca_best_fitness:
-            ax1.plot(generations[:len(self.ca_best_fitness)], self.ca_best_fitness,
-                    marker='o', linewidth=2, markersize=4, color='#e74c3c', label='Best Fitness')
-            ax1.set_title('Best Fitness vs Generation', fontweight='bold')
-            ax1.set_xlabel('Generation')
-            ax1.set_ylabel('Fitness Score')
-            ax1.grid(True, alpha=0.3)
-            ax1.legend()
-
-            # Add annotation for final best
-            final_best = self.ca_best_fitness[-1] if self.ca_best_fitness else 0
-            ax1.annotate(f'Final: {final_best:.1f}',
-                        xy=(len(self.ca_best_fitness), final_best),
-                        xytext=(10, 10), textcoords='offset points',
-                        bbox=dict(boxstyle='round,pad=0.5', fc='yellow', alpha=0.7),
-                        arrowprops=dict(arrowstyle='->', connectionstyle='arc3,rad=0'))
-        else:
-            ax1.text(0.5, 0.5, 'Best Fitness data not available\n(Run solver again to collect data)',
-                    ha='center', va='center', transform=ax1.transAxes)
-            ax1.set_title('Best Fitness vs Generation')
-
-        # Plot 2: Average Fitness vs Generation
-        if hasattr(self, 'ca_avg_fitness') and self.ca_avg_fitness:
-            ax2.plot(generations[:len(self.ca_avg_fitness)], self.ca_avg_fitness,
-                    marker='s', linewidth=2, markersize=4, color='#3498db', label='Avg Fitness')
-            ax2.set_title('Average Fitness vs Generation', fontweight='bold')
-            ax2.set_xlabel('Generation')
-            ax2.set_ylabel('Fitness Score')
-            ax2.grid(True, alpha=0.3)
-            ax2.legend()
-
-            # Add trend line
-            if len(self.ca_avg_fitness) > 1:
-                z = np.polyfit(range(len(self.ca_avg_fitness)), self.ca_avg_fitness, 1)
-                p = np.poly1d(z)
-                ax2.plot(range(1, len(self.ca_avg_fitness)+1), p(range(len(self.ca_avg_fitness))),
-                        "r--", alpha=0.5, label='Trend')
-                ax2.legend()
-        else:
-            ax2.text(0.5, 0.5, 'Average Fitness data not available\n(Run solver again to collect data)',
-                    ha='center', va='center', transform=ax2.transAxes)
-            ax2.set_title('Average Fitness vs Generation')
-
-        # Plot 3: Fitness Comparison (Best vs Avg)
-        if hasattr(self, 'ca_best_fitness') and hasattr(self, 'ca_avg_fitness') and self.ca_best_fitness and self.ca_avg_fitness:
-            min_len = min(len(self.ca_best_fitness), len(self.ca_avg_fitness))
-            ax3.plot(generations[:min_len], self.ca_best_fitness[:min_len],
-                    marker='o', linewidth=2, markersize=4, color='#e74c3c', label='Best')
-            ax3.plot(generations[:min_len], self.ca_avg_fitness[:min_len],
-                    marker='s', linewidth=2, markersize=4, color='#3498db', label='Average')
-            ax3.fill_between(generations[:min_len], self.ca_best_fitness[:min_len],
-                            self.ca_avg_fitness[:min_len], alpha=0.2, color='gray')
-            ax3.set_title('Best vs Average Fitness', fontweight='bold')
-            ax3.set_xlabel('Generation')
-            ax3.set_ylabel('Fitness Score')
-            ax3.grid(True, alpha=0.3)
-            ax3.legend()
-        else:
-            ax3.text(0.5, 0.5, 'Comparison data not available',
-                    ha='center', va='center', transform=ax3.transAxes)
-            ax3.set_title('Best vs Average Fitness')
-
-        # Plot 4: Convergence Analysis
-        if hasattr(self, 'ca_best_fitness') and self.ca_best_fitness and len(self.ca_best_fitness) > 1:
-            # Calculate improvement rate
-            improvement = []
-            for i in range(1, len(self.ca_best_fitness)):
-                if self.ca_best_fitness[i-1] != 0:
-                    imp = ((self.ca_best_fitness[i] - self.ca_best_fitness[i-1]) /
-                          abs(self.ca_best_fitness[i-1])) * 100
-                else:
-                    imp = 0
-                improvement.append(imp)
-
-            ax4.plot(generations[1:len(improvement)+1], improvement,
-                    marker='d', linewidth=2, markersize=4, color='#2ecc71')
-            ax4.axhline(y=0, color='black', linestyle='-', linewidth=0.5)
-            ax4.set_title('Fitness Improvement Rate (%)', fontweight='bold')
-            ax4.set_xlabel('Generation')
-            ax4.set_ylabel('Improvement Rate (%)')
-            ax4.grid(True, alpha=0.3)
-
-            # Highlight convergence point
-            convergence_threshold = 0.1
-            converged = False
-            for i, imp in enumerate(improvement):
-                if abs(imp) < convergence_threshold:
-                    ax4.axvline(x=i+2, color='red', linestyle='--', alpha=0.5,
-                               label=f'Convergence at Gen {i+2}')
-                    converged = True
-                    break
-            if converged:
-                ax4.legend()
-        else:
-            ax4.text(0.5, 0.5, 'Convergence data not available',
-                    ha='center', va='center', transform=ax4.transAxes)
-            ax4.set_title('Fitness Improvement Rate')
-
-        plt.tight_layout()
-
-        # Embed plot in tkinter
-        canvas = FigureCanvasTkAgg(fig, parent)
-        canvas.draw()
-        canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
-
-        # Add summary statistics below the plots
-        summary_frame = ttk.LabelFrame(parent, text="Evolution Summary", padding="10")
-        summary_frame.pack(fill=tk.X, padx=10, pady=5)
-
-        summary_text = tk.Text(summary_frame, height=6, font=('Courier', 10))
-        summary_text.pack(fill=tk.X)
-
-        if hasattr(self, 'ca_best_fitness') and self.ca_best_fitness:
-            initial_best = self.ca_best_fitness[0] if self.ca_best_fitness else 0
-            final_best = self.ca_best_fitness[-1] if self.ca_best_fitness else 0
-            improvement = final_best - initial_best
-            improvement_pct = (improvement / max(1, abs(initial_best))) * 100
-
-            summary_content = f"""
-Evolution Statistics:
-  Total Generations:        {stats.get('generations', 0)}
-  Initial Best Fitness:     {initial_best:.1f}
-  Final Best Fitness:       {final_best:.1f}
-  Total Improvement:        {improvement:.1f} ({improvement_pct:+.1f}%)
-  Execution Time:           {stats.get('execution_time', 0):.4f} seconds
-  Time per Generation:      {(stats.get('execution_time', 0)/max(1, stats.get('generations', 1)))*1000:.2f} ms
-"""
-        else:
-            summary_content = "\nNo evolution data available. Please run the Cultural Algorithm solver to see detailed analysis.\n"
-
-        summary_text.insert('1.0', summary_content)
-        summary_text.config(state=tk.DISABLED)
 
     def _create_charts_tab(self, parent):
         """Create visualization charts tab."""
@@ -1354,9 +1396,10 @@ Evolution Statistics:
         try:
             all_runs = self.db_manager.get_all_runs()
             for idx, run in enumerate(all_runs[:50], 1):  # Show last 50 runs
+
                 # Extract stats if available
                 calls = 'N/A'
-                if 'stats' in run:
+                if 'stats' in run and run['stats']:
                     try:
                         stats_dict = json.loads(run.get('stats', '{}'))
                         calls = f"{stats_dict.get('recursive_calls', 'N/A'):,}" if isinstance(stats_dict.get('recursive_calls'), int) else 'N/A'
@@ -1366,7 +1409,7 @@ Evolution Statistics:
                 tree.insert('', tk.END, values=(
                     idx,
                     run.get('algorithm', 'N/A'),
-                    'N/A',  # Level not in old runs
+                    run.get('level', 'N/A'),
                     f"{run['board_size']}×{run['board_size']}",
                     f"{run['execution_time']:.4f}",
                     calls,
