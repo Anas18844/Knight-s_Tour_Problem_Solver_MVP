@@ -288,6 +288,22 @@ class CulturalAlgorithmSolver(CulturalGASolver):
         return bad_move_indices
 
 
+    def _calculate_cultural_conformity(self, chromosome: List[int], start_pos: Tuple[int, int]) -> float:
+        """
+        Calculates a score based on how well a chromosome's path conforms to the belief space.
+        """
+        path = self.decode(chromosome, start_pos)
+        if not path or len(path) < 2:
+            return 0.0
+
+        good_transitions = 0
+        for i in range(len(path) - 1):
+            if self.belief_space.is_good_transition(path[i], path[i+1]):
+                good_transitions += 1
+
+        return good_transitions / (len(path) - 1)
+
+
     def local_search(self, chromosome: List[int], start_pos: Tuple[int, int]) -> List[int]:
         current_fitness = self.fitness(chromosome, start_pos)
         best_chromosome = chromosome.copy()
@@ -420,6 +436,26 @@ class CulturalAlgorithmSolver(CulturalGASolver):
         self.mutation_count += 1
         return mutated
 
+    def select_parents(self, population: List[List[int]], fitness_scores: List[float], num_to_select: int) -> List[List[int]]:
+        parents = []
+        
+        # Use tournament selection to select parents
+        for _ in range(num_to_select):
+            tournament_size = 5
+            competitors_indices = random.sample(range(len(population)), tournament_size)
+            
+            winner_idx = -1
+            best_fitness = -1.0
+            
+            for idx in competitors_indices:
+                if fitness_scores[idx] > best_fitness:
+                    best_fitness = fitness_scores[idx]
+                    winner_idx = idx
+            
+            parents.append(population[winner_idx])
+            
+        return parents
+
     def evolve(self, start_pos: Tuple[int, int]) -> Tuple[bool, List[Tuple[int, int]]]:
         population = self.initialize_population()
         self.generation_best_fitness = []
@@ -429,7 +465,9 @@ class CulturalAlgorithmSolver(CulturalGASolver):
         self.crossover_count = 0
         self.belief_space = AdvancedBeliefSpace(self.n)
 
-
+        # Steady-state replacement rate
+        steady_state_replacement_rate = 0.2  # Replace 20% of the population each generation
+        num_to_replace = int(self.population_size * steady_state_replacement_rate)
 
         for generation in range(self.generations):
             decoded_paths = [self.decode(chrom, start_pos) for chrom in population]
@@ -467,35 +505,41 @@ class CulturalAlgorithmSolver(CulturalGASolver):
                 if diversity < 0.3:
                     # Replace bottom 20% of population with fresh random individuals
                     sorted_indices = sorted(range(len(fitness_scores)), key=lambda i: fitness_scores[i], reverse=True)
-                    num_to_replace = max(1, len(population) // 5)
+                    num_to_inject = max(1, len(population) // 5)
 
-                    for i in range(num_to_replace):
+                    for i in range(num_to_inject):
                         idx = sorted_indices[-(i + 1)]  # Start from worst individuals
                         population[idx] = [random.randint(0, 7) for _ in range(self.n * self.n * 2)]
                         fitness_scores[idx] = self.fitness(population[idx], start_pos)
 
-
-
-            parents = self.select_parents(population, fitness_scores)
-
-            new_population = []
-            sorted_indices = sorted(range(len(fitness_scores)), key=lambda i: fitness_scores[i], reverse=True)
-            for i in sorted_indices[:self.elitism_count]:
-                new_population.append(population[i].copy())
-
-            while len(new_population) < self.population_size:
+            # --- Steady-State Replacement ---
+            parents = self.select_parents(population, fitness_scores, num_to_replace)
+            
+            # Generate new children
+            children = []
+            while len(children) < num_to_replace:
                 p1 = random.choice(parents)
                 p2 = random.choice(parents)
                 child1, child2 = self.crossover(p1, p2)
-                child1 = self.mutate(child1)
-                child2 = self.mutate(child2)
-                new_population.append(child1)
-                if len(new_population) < self.population_size:
-                    new_population.append(child2)
+                children.append(self.mutate(child1))
+                if len(children) < num_to_replace:
+                    children.append(self.mutate(child2))
+            
+            # --- Survivor Selection with Cultural Knowledge Bias ---
+            # Calculate cultural conformity for the whole population
+            cultural_conformity_scores = [self._calculate_cultural_conformity(chrom, start_pos) for chrom in population]
+            
+            # Combine fitness and cultural conformity for a survival score
+            # Lower score is worse. We give more weight to fitness.
+            survival_scores = [(0.7 * fit) + (0.3 * cult) for fit, cult in zip(fitness_scores, cultural_conformity_scores)]
 
-            population = new_population
-
-
+            # Find the indices of the worst individuals to be replaced
+            sorted_indices_by_survival = sorted(range(len(survival_scores)), key=lambda i: survival_scores[i])
+            indices_to_replace = sorted_indices_by_survival[:num_to_replace]
+            
+            # Replace the worst individuals with the new children
+            for i, child in zip(indices_to_replace, children):
+                population[i] = child
 
         target_squares = self.n * self.n
         unique_visited = len(set(self.best_path))

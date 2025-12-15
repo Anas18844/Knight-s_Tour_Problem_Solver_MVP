@@ -30,7 +30,7 @@ def main():
 
 if __name__ == "__main__":
     print("="*70)
-    print("KNIGHT'S TOUR PROBLEM SOLVER - MVP")
+    print("KNIGHT'S TOUR PROBLEM SOLVER")
     print("University AI Project")
     print("="*70)
     print("\nStarting application...")

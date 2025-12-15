@@ -94,3 +94,26 @@ This section details the new functionality added to the Level 4 Cultural Algorit
         - `test_solve_with_warnsdorff`: Tests the solver with the new heuristic enabled.
         - `test_solve_without_warnsdorff`: Tests the solver with the heuristic disabled for comparison.
         - `test_warnsdorff_impact_on_decode`: Verifies that enabling Warnsdorff's rule actually changes the behavior of the `decode` method.
+
+---
+
+## 4. Steady-State Evolution with Cultural Bias
+
+This section details the implementation of a more advanced evolutionary model in the Level 4 Cultural Algorithm.
+
+### `algorithms/cultural/cultural.py`
+
+- **Feature: Steady-State Replacement**
+    - **Why:** To improve the efficiency of the genetic algorithm. Instead of replacing the entire population each generation (generational replacement), a steady-state model replaces only the worst-performing individuals. This helps to preserve good genetic material and can lead to faster convergence.
+    - **Implementation:** The `evolve` method in the `CulturalAlgorithmSolver` was modified to replace only a portion (20%) of the population in each generation.
+
+- **Feature: Cultural Knowledge Bias in Survivor Selection**
+    - **Why:** To make the survivor selection process "smarter". Instead of relying solely on fitness, the algorithm now considers how well an individual's solution conforms to the learned "cultural knowledge" (i.e., good practices discovered by the algorithm over time). Individuals that are both low-fitness and non-conformant are prioritized for replacement.
+    - **Implementation:**
+        1.  A new method, `_calculate_cultural_conformity`, was added to the `CulturalAlgorithmSolver` class. It scores an individual's path against the belief space's known good transitions.
+        2.  In the `evolve` method, a `survival_score` is now calculated by combining the `fitness_score` and the `cultural_conformity_score`.
+        3.  The individuals with the lowest `survival_score` are selected to be replaced by new children.
+
+- **Feature: Overridden `select_parents` Method**
+    - **Why:** The parent selection process needed to be adapted to the new steady-state model. The original method selected a large number of parents suitable for rebuilding the entire population. The new, overridden method selects a smaller, more appropriate number of parents needed to create the children for replacement.
+    - **Implementation:** The `select_parents` method in the `CulturalAlgorithmSolver` class was overridden to use tournament selection to pick a number of parents equal to the number of individuals being replaced in each generation.

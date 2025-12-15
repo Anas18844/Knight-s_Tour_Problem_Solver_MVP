@@ -21,7 +21,7 @@ class KnightTourGUI:
 
     def __init__(self, root):
         self.root = root
-        self.root.title("Knight's Tour Problem Solver - AI University Project")
+        self.root.title("Knight's Tour Problem Solver")
         self.root.geometry("1400x900")
         self.root.resizable(True, True)
 
